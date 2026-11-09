@@ -1,4 +1,5 @@
 import { relationalStore } from '@kit.ArkData';
+import { SeedColors } from '../../theme/Palette';
 
 class SeedBook {
   id: string = '';
@@ -56,7 +57,7 @@ export class SeedData {
     daily.id = 'book_daily';
     daily.name = '日常账本';
     daily.icon = 'ic_book_daily';
-    daily.color = '#2A78D6';
+    daily.color = SeedColors.c1;
     daily.isDefault = 1;
     daily.sort = 0;
     books.push(daily);
@@ -64,14 +65,14 @@ export class SeedData {
     travel.id = 'book_travel';
     travel.name = '旅行';
     travel.icon = 'ic_book_travel';
-    travel.color = '#EB6834';
+    travel.color = SeedColors.c2;
     travel.sort = 1;
     books.push(travel);
     const repair: SeedBook = new SeedBook();
     repair.id = 'book_repair';
     repair.name = '装修';
     repair.icon = 'ic_book_repair';
-    repair.color = '#1BAF7A';
+    repair.color = SeedColors.c3;
     repair.sort = 2;
     books.push(repair);
     for (const book of books) {
@@ -89,7 +90,7 @@ export class SeedData {
     self.id = 'member_self';
     self.name = '自己';
     self.initial = '自';
-    self.color = '#2A78D6';
+    self.color = SeedColors.c1;
     self.isDefault = 1;
     self.sort = 0;
     members.push(self);
@@ -97,14 +98,14 @@ export class SeedData {
     family.id = 'member_family';
     family.name = '家人';
     family.initial = '家';
-    family.color = '#C94B7B';
+    family.color = SeedColors.memberFamily;
     family.sort = 1;
     members.push(family);
     const child: SeedMember = new SeedMember();
     child.id = 'member_child';
     child.name = '孩子';
     child.initial = '孩';
-    child.color = '#137A57';
+    child.color = SeedColors.memberChild;
     child.sort = 2;
     members.push(child);
     for (const member of members) {
@@ -136,16 +137,16 @@ export class SeedData {
 
   private static async insertCategories(store: relationalStore.RdbStore, now: number): Promise<void> {
     const categories: SeedCategory[] = [];
-    SeedData.addCategory(categories, 'cat_food', 'group_food', '餐饮', 'ic_cat_food', '#EB6834', 'canyin', 0);
-    SeedData.addCategory(categories, 'cat_transport', 'group_travel', '交通', 'ic_cat_transport', '#2A78D6', 'jiaotong', 0);
-    SeedData.addCategory(categories, 'cat_home', 'group_home', '居家', 'ic_cat_home', '#1BAF7A', 'jujia', 0);
-    SeedData.addCategory(categories, 'cat_shopping', 'group_shop', '购物', 'ic_cat_shopping', '#E87BA4', 'gouwu', 0);
-    SeedData.addCategory(categories, 'cat_entertain', 'group_leisure', '娱乐', 'ic_cat_entertain', '#EDA100', 'yule', 0);
-    SeedData.addCategory(categories, 'cat_medical', 'group_other', '医疗', 'ic_cat_medical', '#E34948', 'yiliao', 0);
-    SeedData.addCategory(categories, 'cat_study', 'group_other', '学习', 'ic_cat_study', '#6250D6', 'xuexi', 1);
-    SeedData.addCategory(categories, 'cat_water', 'group_home', '水电', 'ic_cat_water', '#008300', 'shuidian', 1);
-    SeedData.addCategory(categories, 'cat_phone', 'group_other', '通讯', 'ic_cat_phone', '#B8AAB1', 'tongxun', 2);
-    SeedData.addCategory(categories, 'cat_other', 'group_other', '其他', 'ic_cat_other', '#B8AAB1', 'qita', 3);
+    SeedData.addCategory(categories, 'cat_food', 'group_food', '餐饮', 'ic_cat_food', SeedColors.c2, 'canyin', 0);
+    SeedData.addCategory(categories, 'cat_transport', 'group_travel', '交通', 'ic_cat_transport', SeedColors.c1, 'jiaotong', 0);
+    SeedData.addCategory(categories, 'cat_home', 'group_home', '居家', 'ic_cat_home', SeedColors.c3, 'jujia', 0);
+    SeedData.addCategory(categories, 'cat_shopping', 'group_shop', '购物', 'ic_cat_shopping', SeedColors.c5, 'gouwu', 0);
+    SeedData.addCategory(categories, 'cat_entertain', 'group_leisure', '娱乐', 'ic_cat_entertain', SeedColors.c4, 'yule', 0);
+    SeedData.addCategory(categories, 'cat_medical', 'group_other', '医疗', 'ic_cat_medical', SeedColors.c8, 'yiliao', 0);
+    SeedData.addCategory(categories, 'cat_study', 'group_other', '学习', 'ic_cat_study', SeedColors.c6, 'xuexi', 1);
+    SeedData.addCategory(categories, 'cat_water', 'group_home', '水电', 'ic_cat_water', SeedColors.c7, 'shuidian', 1);
+    SeedData.addCategory(categories, 'cat_phone', 'group_other', '通讯', 'ic_cat_phone', SeedColors.neutral, 'tongxun', 2);
+    SeedData.addCategory(categories, 'cat_other', 'group_other', '其他', 'ic_cat_other', SeedColors.neutral, 'qita', 3);
     for (const category of categories) {
       await store.executeSql(
         'INSERT OR IGNORE INTO category (id, group_id, name, icon, color, pinyin, sort, archived, created_at) ' +

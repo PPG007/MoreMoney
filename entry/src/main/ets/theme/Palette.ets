@@ -81,6 +81,42 @@ export class BarColors {
   static readonly statusBarLight: string = '#FFFFFF';
 }
 
+export class LineColors {
+  static cardBorder(isDark: boolean): string {
+    return isDark ? withAlpha('#332D40', 0.76) : withAlpha('#EEE4E6', 0.76);
+  }
+}
+
+export class ToneColors {
+  static warnSoft(isDark: boolean): string {
+    return withAlpha(isDark ? '#F0B45A' : '#8A5200', 0.12);
+  }
+}
+
+export class SnackColors {
+  static background(isDark: boolean): string {
+    return isDark ? withAlpha('#F4F0FA', 0.92) : withAlpha('#272231', 0.92);
+  }
+
+  static text(isDark: boolean): string {
+    return isDark ? '#272231' : '#FFFFFF';
+  }
+}
+
+export class SeedColors {
+  static readonly c1: string = '#2A78D6';
+  static readonly c2: string = '#EB6834';
+  static readonly c3: string = '#1BAF7A';
+  static readonly c4: string = '#EDA100';
+  static readonly c5: string = '#E87BA4';
+  static readonly c6: string = '#6250D6';
+  static readonly c7: string = '#008300';
+  static readonly c8: string = '#E34948';
+  static readonly neutral: string = '#B8AAB1';
+  static readonly memberFamily: string = '#C94B7B';
+  static readonly memberChild: string = '#137A57';
+}
+
 export function withAlpha(hex: string, alpha: number): string {
   const raw: string = hex.startsWith('#') ? hex.substring(1) : hex;
   if (raw.length !== 6) {

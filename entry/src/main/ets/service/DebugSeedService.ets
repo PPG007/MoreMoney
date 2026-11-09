@@ -1,6 +1,7 @@
 import { relationalStore } from '@kit.ArkData';
 import { Category, Member } from '../models/Entities';
 import { DbManager } from '../data/db/DbManager';
+import { SeedColors } from '../theme/Palette';
 
 export class DebugSeedService {
   static readonly demoBookDaily: string = 'demo_book_daily';
@@ -25,13 +26,13 @@ export class DebugSeedService {
   private static async insertBooks(store: relationalStore.RdbStore): Promise<void> {
     const now: number = Date.now();
     await DebugSeedService.insertBook(store, DebugSeedService.demoBookDaily, '日常账本', 'ic_book_daily',
-      '#2A78D6', 0, 1, 0, now);
+      SeedColors.c1, 0, 1, 0, now);
     await DebugSeedService.insertBook(store, DebugSeedService.demoBookTravel, '旅行', 'ic_book_travel',
-      '#EB6834', 0, 0, 1, now);
+      SeedColors.c2, 0, 0, 1, now);
     await DebugSeedService.insertBook(store, DebugSeedService.demoBookFamily, '家庭', 'ic_book_family',
-      '#6250D6', 1, 0, 2, now);
+      SeedColors.c6, 1, 0, 2, now);
     await DebugSeedService.insertBook(store, DebugSeedService.demoBookRepair, '装修', 'ic_book_repair',
-      '#1BAF7A', 0, 0, 3, now);
+      SeedColors.c3, 0, 0, 3, now);
   }
 
   private static async insertBook(store: relationalStore.RdbStore, id: string, name: string, icon: string,

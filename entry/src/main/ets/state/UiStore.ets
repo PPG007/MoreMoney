@@ -1,22 +1,20 @@
 import { AppStorageV2 } from '@kit.ArkUI';
 import { GlobalUiStore } from './GlobalUiStore';
 
-let fallback: GlobalUiStore | undefined = undefined;
+let shared: GlobalUiStore | undefined = undefined;
 
 export class UiStore {
   static instance(): GlobalUiStore {
-    try {
-      const shared: GlobalUiStore | undefined = AppStorageV2.connect(
-        GlobalUiStore, 'globalUi', () => new GlobalUiStore()
-      );
-      if (shared !== undefined) {
-        return shared;
-      }
-    } catch (error) {
-      fallback = fallback === undefined ? new GlobalUiStore() : fallback;
-      return fallback;
+    if (shared !== undefined) {
+      return shared;
     }
-    fallback = fallback === undefined ? new GlobalUiStore() : fallback;
-    return fallback;
+    let connected: GlobalUiStore | undefined = undefined;
+    try {
+      connected = AppStorageV2.connect(GlobalUiStore, 'globalUi', () => new GlobalUiStore());
+    } catch (error) {
+      connected = undefined;
+    }
+    shared = connected === undefined ? new GlobalUiStore() : connected;
+    return shared;
   }
 }

@@ -4,7 +4,9 @@ import { GlobalUiStore } from '../state/GlobalUiStore';
 import { UiStore } from '../state/UiStore';
 import { SystemBarService } from '../service/SystemBarService';
 import { DbManager } from '../data/db/DbManager';
+import { SettingsService } from '../service/SettingsService';
 import { MainTabs } from '../components/layout/MainTabs';
+import { SnackBarHost } from '../components/base/SnackBarHost';
 
 const DOMAIN: number = 0x0000;
 const TAG: string = 'MoreMoneyIndex';
@@ -23,6 +25,8 @@ struct Index {
       SystemBarService.updateInsets(this.ui, context).catch(() => {
       });
       SystemBarService.setStatusBarDarkText(context, false).catch(() => {
+      });
+      SettingsService.init(context).catch(() => {
       });
       DbManager.init(context).then(() => {
         this.dbReady = true;
@@ -43,7 +47,7 @@ struct Index {
   }
 
   build() {
-    Stack() {
+    Stack({ alignContent: Alignment.Bottom }) {
       Navigation(this.stack) {
         MainTabs({
           selectedIndex: this.selectedIndex,
@@ -58,6 +62,8 @@ struct Index {
       .width('100%')
       .height('100%')
       .backgroundColor($r('app.color.bg'))
+
+      SnackBarHost()
 
       if (!this.dbReady) {
         Column({ space: 12 }) {
