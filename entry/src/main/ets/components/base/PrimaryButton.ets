@@ -4,6 +4,7 @@ import { AppFont, Radius } from '../../theme/Theme';
 export struct PrimaryButton {
   @Param label: string = '';
   @Param isEnabled: boolean = true;
+  @Param buttonHeight: number = 46;
   @Event onTap: () => void = () => {
   };
 
@@ -11,7 +12,7 @@ export struct PrimaryButton {
     Button(this.label, { type: ButtonType.Normal })
       .type(ButtonType.Normal)
       .width('100%')
-      .height(46)
+      .height(this.buttonHeight)
       .borderRadius(Radius.button)
       .backgroundColor($r('app.color.btn_bg'))
       .fontColor($r('app.color.btn_fg'))
