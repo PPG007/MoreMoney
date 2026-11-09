@@ -33,6 +33,13 @@ export struct MoneyText {
     return text;
   }
 
+  private finalText(): string {
+    if (this.locked || (this.ui.hideAmount && !this.forceVisible)) {
+      return this.showSymbol ? '¥••••' : '••••';
+    }
+    return this.visibleText();
+  }
+
   private colorOf(): ResourceColor {
     if (this.tone === MoneyTone.Expense) {
       return $r('app.color.expense');
@@ -46,27 +53,18 @@ export struct MoneyText {
     return $r('app.color.ink');
   }
 
-  @Builder
-  amount(content: string) {
+  build() {
     if (this.tone === MoneyTone.Inherit) {
-      Text(content)
+      Text(this.finalText())
         .fontSize(this.fontSize)
         .fontWeight(this.weight)
         .fontFeature(AppFont.tnum)
     } else {
-      Text(content)
+      Text(this.finalText())
         .fontSize(this.fontSize)
         .fontWeight(this.weight)
         .fontColor(this.colorOf())
         .fontFeature(AppFont.tnum)
-    }
-  }
-
-  build() {
-    if (this.locked || (this.ui.hideAmount && !this.forceVisible)) {
-      this.amount(this.showSymbol ? '¥••••' : '••••')
-    } else {
-      this.amount(this.visibleText())
     }
   }
 }
