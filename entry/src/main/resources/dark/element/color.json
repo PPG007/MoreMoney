@@ -2,7 +2,119 @@
   "color": [
     {
       "name": "start_window_background",
-      "value": "#000000"
+      "value": "#121017"
+    },
+    {
+      "name": "bg",
+      "value": "#121017"
+    },
+    {
+      "name": "surface",
+      "value": "#1C1925"
+    },
+    {
+      "name": "surface_2",
+      "value": "#25212E"
+    },
+    {
+      "name": "surface_3",
+      "value": "#302A3B"
+    },
+    {
+      "name": "ink",
+      "value": "#F4F0FA"
+    },
+    {
+      "name": "ink_2",
+      "value": "#C3BCCD"
+    },
+    {
+      "name": "ink_3",
+      "value": "#9C93A8"
+    },
+    {
+      "name": "line",
+      "value": "#332D40"
+    },
+    {
+      "name": "chart_surface",
+      "value": "#1C1925"
+    },
+    {
+      "name": "bezel",
+      "value": "#15121B"
+    },
+    {
+      "name": "scrim",
+      "value": "#94000000"
+    },
+    {
+      "name": "tab_bg",
+      "value": "#DB1C1925"
+    },
+    {
+      "name": "brand",
+      "value": "#818CF8"
+    },
+    {
+      "name": "brand_ink",
+      "value": "#A5B4FC"
+    },
+    {
+      "name": "brand_soft",
+      "value": "#2E2A5E"
+    },
+    {
+      "name": "brand_wash",
+      "value": "#1E1B3A"
+    },
+    {
+      "name": "btn_bg",
+      "value": "#A5B4FC"
+    },
+    {
+      "name": "btn_fg",
+      "value": "#1E1B3A"
+    },
+    {
+      "name": "expense",
+      "value": "#FF9A9A"
+    },
+    {
+      "name": "good",
+      "value": "#4FD1A0"
+    },
+    {
+      "name": "warn",
+      "value": "#F0B45A"
+    },
+    {
+      "name": "hero_a",
+      "value": "#312E81"
+    },
+    {
+      "name": "hero_b",
+      "value": "#25225F"
+    },
+    {
+      "name": "hero_c",
+      "value": "#181638"
+    },
+    {
+      "name": "on_hero",
+      "value": "#FFFFFF"
+    },
+    {
+      "name": "hero_glass",
+      "value": "#17FFFFFF"
+    },
+    {
+      "name": "hero_line",
+      "value": "#24FFFFFF"
+    },
+    {
+      "name": "hero_glow",
+      "value": "#1F8C96FF"
     }
   ]
 }
