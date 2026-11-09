@@ -79,6 +79,16 @@ export class Shadow {
     return options;
   }
 
+  static sheet(isDark: boolean): ShadowOptions {
+    const options: ShadowOptions = {
+      radius: 34,
+      offsetX: 0,
+      offsetY: -10,
+      color: isDark ? 'rgba(0,0,0,0.4)' : 'rgba(50,40,110,0.18)'
+    };
+    return options;
+  }
+
   static fab(isDark: boolean): ShadowOptions {
     const options: ShadowOptions = {
       radius: 34,
