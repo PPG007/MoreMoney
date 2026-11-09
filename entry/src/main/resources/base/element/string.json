@@ -11,6 +11,10 @@
     {
       "name": "EntryAbility_label",
       "value": "label"
+    },
+    {
+      "name": "biometric_reason",
+      "value": "用于解锁私密账本"
     }
   ]
 }
