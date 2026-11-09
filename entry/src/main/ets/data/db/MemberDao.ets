@@ -49,6 +49,30 @@ export class MemberDao {
     );
   }
 
+  static async setDefault(id: string): Promise<void> {
+    const tx: relationalStore.Transaction = await DbManager.store.createTransaction();
+    try {
+      await tx.execute('UPDATE member SET is_default = 0 WHERE is_default = 1');
+      await tx.execute('UPDATE member SET is_default = 1 WHERE id = ?', [id]);
+      await tx.commit();
+    } catch (error) {
+      await tx.rollback();
+      throw new Error('设置默认成员失败: ' + String(error));
+    }
+  }
+
+  static async countActive(): Promise<number> {
+    return MemberDao.countWhere('archived = 0', []);
+  }
+
+  static async countTxnsById(memberId: string): Promise<number> {
+    return MemberDao.countTxns(memberId);
+  }
+
+  static async unarchive(id: string): Promise<void> {
+    await DbManager.store.executeSql('UPDATE member SET archived = 0 WHERE id = ?', [id]);
+  }
+
   static async archive(id: string): Promise<void> {
     await DbManager.store.executeSql('UPDATE member SET archived = 1 WHERE id = ?', [id]);
   }
@@ -59,6 +83,20 @@ export class MemberDao {
       throw new Error('该成员已有流水，请使用归档');
     }
     await DbManager.store.executeSql('DELETE FROM member WHERE id = ?', [id]);
+  }
+
+  private static async countWhere(where: string, args: Array<relationalStore.ValueType>): Promise<number> {
+    const rs: relationalStore.ResultSet = await DbManager.store.querySql(
+      'SELECT COUNT(*) AS c FROM member WHERE ' + where, args
+    );
+    try {
+      if (rs.goToFirstRow()) {
+        return rs.getLong(rs.getColumnIndex('c'));
+      }
+    } finally {
+      rs.close();
+    }
+    return 0;
   }
 
   private static async countTxns(memberId: string): Promise<number> {

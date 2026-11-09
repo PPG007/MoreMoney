@@ -81,6 +81,84 @@ export class BarColors {
   static readonly statusBarLight: string = '#FFFFFF';
 }
 
+export class OverlayColors {
+  static percentPill(): string {
+    return withAlpha('#000000', 0.45);
+  }
+}
+
+export class CanvasColors {
+  static surface(isDark: boolean): string {
+    return isDark ? '#1C1925' : '#FFFFFF';
+  }
+
+  static line(isDark: boolean): string {
+    return isDark ? '#332D40' : '#EEE4E6';
+  }
+
+  static ink(isDark: boolean): string {
+    return isDark ? '#F4F0FA' : '#272231';
+  }
+
+  static ink3(isDark: boolean): string {
+    return isDark ? '#9C93A8' : '#756B7B';
+  }
+
+  static brand(isDark: boolean): string {
+    return isDark ? '#818CF8' : '#6366F1';
+  }
+
+  static brandInk(isDark: boolean): string {
+    return isDark ? '#A5B4FC' : '#4338CA';
+  }
+
+  static brandSoft(isDark: boolean): string {
+    return isDark ? '#2E2A5E' : '#E0E7FF';
+  }
+
+  static expense(isDark: boolean): string {
+    return isDark ? '#FF9A9A' : '#C62F3D';
+  }
+
+  static white(): string {
+    return '#FFFFFF';
+  }
+
+  static brandArea(isDark: boolean): string {
+    return isDark ? 'rgba(129,140,248,0.30)' : 'rgba(99,102,241,0.30)';
+  }
+
+  static brandAreaEnd(isDark: boolean): string {
+    return isDark ? 'rgba(129,140,248,0)' : 'rgba(99,102,241,0)';
+  }
+
+  static lineSoft(isDark: boolean): string {
+    return isDark ? 'rgba(51,45,64,0.40)' : 'rgba(238,228,230,0.40)';
+  }
+
+  static scrimPill(isDark: boolean): string {
+    return isDark ? 'rgba(28,25,37,0.94)' : 'rgba(255,255,255,0.94)';
+  }
+}
+
+export class RingColors {
+  static track(isDark: boolean): string {
+    return isDark ? '#25212E' : '#F5F0F1';
+  }
+
+  static expense(isDark: boolean): string {
+    return isDark ? '#FF9A9A' : '#C62F3D';
+  }
+
+  static brandStart(isDark: boolean): string {
+    return isDark ? '#818CF8' : '#6366F1';
+  }
+
+  static brandEnd(isDark: boolean): string {
+    return isDark ? '#A5B4FC' : '#4338CA';
+  }
+}
+
 export class LineColors {
   static cardBorder(isDark: boolean): string {
     return isDark ? withAlpha('#332D40', 0.76) : withAlpha('#EEE4E6', 0.76);
@@ -115,6 +193,13 @@ export class SeedColors {
   static readonly neutral: string = '#B8AAB1';
   static readonly memberFamily: string = '#C94B7B';
   static readonly memberChild: string = '#137A57';
+}
+
+export function memberColorOf(value: string, isDark: boolean): string {
+  if (value.startsWith('#')) {
+    return value;
+  }
+  return MemberPalette.resolve(value, isDark);
 }
 
 export function withAlpha(hex: string, alpha: number): string {
