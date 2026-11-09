@@ -92,6 +92,31 @@ export class TxnDao {
     return 0;
   }
 
+  static async search(keyword: string, limit: number, excludeBookIds: string[] = []): Promise<Txn[]> {
+    const like: string = '%'.concat(keyword).concat('%');
+    const args: Array<relationalStore.ValueType> = [like, like, like];
+    let where: string = 't.deleted_at IS NULL AND (t.note LIKE ? OR c.name LIKE ? OR m.name LIKE ?)';
+    where += ' AND t.book_id NOT IN (SELECT id FROM book WHERE archived = 1)';
+    if (excludeBookIds.length > 0) {
+      where += ' AND t.book_id NOT IN (' + TxnDao.marks(excludeBookIds.length) + ')';
+      for (const id of excludeBookIds) {
+        args.push(id);
+      }
+    }
+    args.push(limit);
+    return TxnDao.queryList(
+      'SELECT t.* FROM txn t INNER JOIN category c ON c.id = t.category_id ' +
+        'INNER JOIN member m ON m.id = t.member_id WHERE ' + where + ' ' +
+        'ORDER BY t.occurred_at DESC, t.created_at DESC LIMIT ?', args
+    );
+  }
+
+  static async countRange(filter: TxnFilter): Promise<number> {
+    const args: Array<relationalStore.ValueType> = [];
+    const where: string = TxnDao.buildWhere(filter, args);
+    return TxnDao.countWhere(where, args);
+  }
+
   static async countByBook(bookId: string): Promise<number> {
     return TxnDao.countWhere('book_id = ? AND deleted_at IS NULL', [bookId]);
   }
