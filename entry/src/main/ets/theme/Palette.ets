@@ -1,5 +1,4 @@
-export class ChartColors {
-  slots: string[] = [];
+export class ChartColors {  slots: string[] = [];
   other: string = '';
 }
 
@@ -75,6 +74,11 @@ export function memberColors(isDark: boolean): MemberColors {
   colors.c8 = isDark ? '#E66767' : '#E34948';
   colors.c3 = isDark ? '#199E70' : '#1BAF7A';
   return colors;
+}
+
+export class BarColors {
+  static readonly statusBarDark: string = '#000000';
+  static readonly statusBarLight: string = '#FFFFFF';
 }
 
 export function withAlpha(hex: string, alpha: number): string {

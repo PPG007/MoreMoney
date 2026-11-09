@@ -1,0 +1,34 @@
+{
+  "routerMap": [
+    {
+      "name": "BookManage",
+      "pageSourceFile": "src/main/ets/pages/books/BookManagePage.ets",
+      "buildFunction": "BookManageBuilder"
+    },
+    {
+      "name": "CategoryManage",
+      "pageSourceFile": "src/main/ets/pages/categories/CategoryManagePage.ets",
+      "buildFunction": "CategoryManageBuilder"
+    },
+    {
+      "name": "MemberManage",
+      "pageSourceFile": "src/main/ets/pages/members/MemberManagePage.ets",
+      "buildFunction": "MemberManageBuilder"
+    },
+    {
+      "name": "DataBackup",
+      "pageSourceFile": "src/main/ets/pages/data/DataBackupPage.ets",
+      "buildFunction": "DataBackupBuilder"
+    },
+    {
+      "name": "Search",
+      "pageSourceFile": "src/main/ets/pages/search/SearchPage.ets",
+      "buildFunction": "SearchBuilder"
+    },
+    {
+      "name": "AddTxn",
+      "pageSourceFile": "src/main/ets/pages/add/AddTxnPage.ets",
+      "buildFunction": "AddTxnBuilder"
+    }
+  ]
+}
