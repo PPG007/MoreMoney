@@ -43,7 +43,12 @@ export struct MainTabs {
   build() {
     Tabs({ barPosition: BarPosition.End, index: this.selectedIndex }) {
       TabContent() {
-        HomePage()
+        HomePage({
+          stack: this.stack,
+          onGoBudget: () => {
+            this.onIndexChange(1);
+          }
+        })
       }
       .tabBar(this.tabItem(0, '账本', $r('app.media.ic_tab_books')))
 
