@@ -42,6 +42,19 @@ export class BudgetDao {
     return list;
   }
 
+  static async listAll(): Promise<Budget[]> {
+    const rs: relationalStore.ResultSet = await DbManager.store.querySql('SELECT * FROM budget');
+    const list: Budget[] = [];
+    try {
+      while (rs.goToNextRow()) {
+        list.push(DbMapper.toBudget(rs));
+      }
+    } finally {
+      rs.close();
+    }
+    return list;
+  }
+
   static async remove(bookId: string, period: string): Promise<void> {
     await DbManager.store.executeSql('DELETE FROM budget WHERE book_id = ? AND period = ?', [bookId, period]);
   }
