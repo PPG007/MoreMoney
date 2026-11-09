@@ -7,6 +7,7 @@ import { DbManager } from '../data/db/DbManager';
 import { SettingsService } from '../service/SettingsService';
 import { MainTabs } from '../components/layout/MainTabs';
 import { SnackBarHost } from '../components/base/SnackBarHost';
+import { DeleteService } from '../service/DeleteService';
 
 const DOMAIN: number = 0x0000;
 const TAG: string = 'MoreMoneyIndex';
@@ -30,6 +31,8 @@ struct Index {
       });
       DbManager.init(context).then(() => {
         this.dbReady = true;
+        DeleteService.purgeExpired().catch(() => {
+        });
       }).catch((error: BusinessError) => {
         hilog.error(DOMAIN, TAG, 'DB init failed: %{public}s', error.message);
         this.dbReady = true;
@@ -48,24 +51,22 @@ struct Index {
 
   build() {
     Stack({ alignContent: Alignment.Bottom }) {
-      Navigation(this.stack) {
-        MainTabs({
-          selectedIndex: this.selectedIndex,
-          stack: this.stack,
-          onIndexChange: (index: number) => {
-            this.onTabChange(index);
-          }
-        })
-      }
-      .mode(NavigationMode.Stack)
-      .hideTitleBar(true)
-      .width('100%')
-      .height('100%')
-      .backgroundColor($r('app.color.bg'))
-
-      SnackBarHost()
-
-      if (!this.dbReady) {
+      if (this.dbReady) {
+        Navigation(this.stack) {
+          MainTabs({
+            selectedIndex: this.selectedIndex,
+            stack: this.stack,
+            onIndexChange: (index: number) => {
+              this.onTabChange(index);
+            }
+          })
+        }
+        .mode(NavigationMode.Stack)
+        .hideTitleBar(true)
+        .width('100%')
+        .height('100%')
+        .backgroundColor($r('app.color.bg'))
+      } else {
         Column({ space: 12 }) {
           LoadingProgress()
             .width(32)
@@ -80,6 +81,8 @@ struct Index {
         .justifyContent(FlexAlign.Center)
         .backgroundColor($r('app.color.bg'))
       }
+
+      SnackBarHost()
     }
     .width('100%')
     .height('100%')
