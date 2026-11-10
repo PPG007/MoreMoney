@@ -69,6 +69,11 @@ export struct BudgetPage {
     this.reload();
   }
 
+  @Monitor('ui.bookVersion')
+  onBookChanged(): void {
+    this.reload();
+  }
+
   private static titleOf(type: BudgetPeriodType): string {
     if (type === BudgetPeriodType.WEEK) {
       return '周预算';

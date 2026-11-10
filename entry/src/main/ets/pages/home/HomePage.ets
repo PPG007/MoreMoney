@@ -84,6 +84,11 @@ export struct HomePage {
     this.reload();
   }
 
+  @Monitor('ui.bookVersion')
+  onBookChanged(): void {
+    this.reload();
+  }
+
   private async reload(): Promise<void> {
     this.errorText = '';
     try {

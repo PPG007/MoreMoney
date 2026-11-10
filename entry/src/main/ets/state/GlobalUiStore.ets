@@ -17,6 +17,7 @@ export class GlobalUiStore {
   @Trace unlockVersion: number = 0;
   @Trace txnVersion: number = 0;
   @Trace budgetVersion: number = 0;
+  @Trace bookVersion: number = 0;
 
   notifyTxnChanged(): void {
     this.txnVersion += 1;
@@ -24,6 +25,10 @@ export class GlobalUiStore {
 
   notifyBudgetChanged(): void {
     this.budgetVersion += 1;
+  }
+
+  notifyBookChanged(): void {
+    this.bookVersion += 1;
   }
 
   unlockedUntil: Record<string, number> = {};

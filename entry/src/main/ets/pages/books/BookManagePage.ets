@@ -218,6 +218,7 @@ export struct BookManagePage {
       }
       this.showEdit = false;
       this.editingBook = null;
+      this.ui.notifyBookChanged();
       await this.reload();
       SnackBarService.show(BookManagePage.toast('已保存'));
     } catch (error) {
@@ -263,6 +264,7 @@ export struct BookManagePage {
       }
       this.showEdit = false;
       this.editingBook = null;
+      this.ui.notifyBookChanged();
       await this.reload();
       SnackBarService.show(BookManagePage.toast('已保存'));
     } catch (error) {
@@ -291,6 +293,7 @@ export struct BookManagePage {
       await BookDao.setDefault(bookId);
       await SettingsService.setDefaultBookId(bookId);
       this.showActions = false;
+      this.ui.notifyBookChanged();
       await this.reload();
       SnackBarService.show(BookManagePage.toast('已设为默认账本'));
     } catch (error) {
@@ -343,6 +346,7 @@ export struct BookManagePage {
   private async performArchive(bookId: string): Promise<void> {
     try {
       await BookDao.archive(bookId);
+      this.ui.notifyBookChanged();
       await this.reload();
       SnackBarService.show(BookManagePage.toast('已归档'));
     } catch (error) {
@@ -390,6 +394,7 @@ export struct BookManagePage {
   private async performDelete(bookId: string): Promise<void> {
     try {
       await BookDao.delete(bookId);
+      this.ui.notifyBookChanged();
       await this.reload();
       SnackBarService.show(BookManagePage.toast('已删除'));
     } catch (error) {
@@ -444,6 +449,7 @@ export struct BookManagePage {
     try {
       await BookDao.setDefault(bookId);
       await SettingsService.setDefaultBookId(bookId);
+      this.ui.notifyBookChanged();
       if (target !== null) {
         if (action === 'delete') {
           await this.performDelete(target.id);

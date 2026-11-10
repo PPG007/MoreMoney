@@ -4,15 +4,30 @@ import { BookDao } from '../data/db/BookDao';
 import { CryptoUtil } from '../utils/CryptoUtil';
 import { UiStore } from '../state/UiStore';
 import { GlobalUiStore } from '../state/GlobalUiStore';
+import { SettingsService } from './SettingsService';
 
 const DEFAULT_ITERATIONS: number = 10000;
 const SALT_LENGTH: number = 16;
 const MAX_FAILURES: number = 5;
 const LOCK_SECONDS: number = 30;
+const BIOMETRIC_TIMEOUT_MS: number = 60000;
+
+export class BiometricCapability {
+  available: boolean = false;
+  changed: boolean = false;
+  enrolled: boolean = false;
+  authTypes: userAuth.UserAuthType[] = [];
+  trustLevel: userAuth.AuthTrustLevel = userAuth.AuthTrustLevel.ATL2;
+  label: string = '';
+}
 
 export class PrivateBookService {
   private static failures: Record<string, number> = {};
   private static lockedUntil: Record<string, number> = {};
+  private static authPromise: Promise<boolean> | null = null;
+  private static authInstance: userAuth.UserAuthInstance | null = null;
+  private static authFinish: ((ok: boolean) => void) | null = null;
+  private static authTimer: number = -1;
 
   static async setPassword(bookId: string, password: string): Promise<void> {
     const book: Book | null = await BookDao.get(bookId);
@@ -28,6 +43,7 @@ export class PrivateBookService {
     updated.pwdIter = DEFAULT_ITERATIONS;
     updated.updatedAt = Date.now();
     await BookDao.update(updated);
+    await PrivateBookService.rememberBiometric();
   }
 
   static async verify(bookId: string, password: string): Promise<boolean> {
@@ -140,44 +156,194 @@ export class PrivateBookService {
     return remain > 0 ? remain : 0;
   }
 
-  static biometricAvailable(): boolean {
-    try {
-      userAuth.getAvailableStatus(userAuth.UserAuthType.FACE, userAuth.AuthTrustLevel.ATL3);
-      return true;
-    } catch (faceError) {
+  static biometricCapability(): BiometricCapability {
+    const capability: BiometricCapability = new BiometricCapability();
+    capability.enrolled = PrivateBookService.currentDigest(userAuth.UserAuthType.FACE).length > 0 ||
+      PrivateBookService.currentDigest(userAuth.UserAuthType.FINGERPRINT).length > 0;
+    const atl3Types: userAuth.UserAuthType[] = PrivateBookService.availableTypes(userAuth.AuthTrustLevel.ATL3);
+    const atl2Types: userAuth.UserAuthType[] = PrivateBookService.availableTypes(userAuth.AuthTrustLevel.ATL2);
+    if (atl3Types.length > 0 && atl3Types.length === atl2Types.length) {
+      capability.authTypes = atl3Types;
+      capability.trustLevel = userAuth.AuthTrustLevel.ATL3;
+    } else if (atl2Types.length > 0) {
+      capability.authTypes = atl2Types;
+      capability.trustLevel = userAuth.AuthTrustLevel.ATL2;
+    }
+    if (capability.authTypes.length === 0) {
+      return capability;
+    }
+    capability.label = PrivateBookService.authLabel(capability.authTypes);
+    if (PrivateBookService.biometricChanged(capability.authTypes)) {
+      capability.changed = true;
+      return capability;
+    }
+    capability.available = true;
+    return capability;
+  }
+
+  static authenticateBiometric(context: Context): Promise<boolean> {
+    if (PrivateBookService.authPromise !== null) {
+      return PrivateBookService.authPromise;
+    }
+    const capability: BiometricCapability = PrivateBookService.biometricCapability();
+    if (!capability.available) {
+      return Promise.resolve(false);
+    }
+    const promise: Promise<boolean> = PrivateBookService.runBiometric(capability, context);
+    PrivateBookService.authPromise = promise;
+    promise.then(() => {
+      if (PrivateBookService.authPromise === promise) {
+        PrivateBookService.authPromise = null;
+      }
+    });
+    return promise;
+  }
+
+  static cancelBiometric(): void {
+    const finish: ((ok: boolean) => void) | null = PrivateBookService.authFinish;
+    const instance: userAuth.UserAuthInstance | null = PrivateBookService.authInstance;
+    if (finish !== null) {
+      finish(false);
+    }
+    if (instance !== null) {
       try {
-        userAuth.getAvailableStatus(userAuth.UserAuthType.FINGERPRINT, userAuth.AuthTrustLevel.ATL3);
-        return true;
-      } catch (fingerError) {
-        return false;
+        instance.cancel();
+      } catch (error) {
       }
     }
   }
 
-  static async authenticateBiometric(context: Context): Promise<boolean> {
+  static async rememberBiometric(): Promise<void> {
+    await PrivateBookService.storeDigest(userAuth.UserAuthType.FACE);
+    await PrivateBookService.storeDigest(userAuth.UserAuthType.FINGERPRINT);
+  }
+
+  private static runBiometric(capability: BiometricCapability, context: Context): Promise<boolean> {
     return new Promise<boolean>((resolve: (value: boolean) => void) => {
+      let settled: boolean = false;
+      let instance: userAuth.UserAuthInstance | null = null;
+      let callback: userAuth.IAuthCallback | null = null;
+      const finish = (ok: boolean): void => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        if (PrivateBookService.authTimer !== -1) {
+          clearTimeout(PrivateBookService.authTimer);
+          PrivateBookService.authTimer = -1;
+        }
+        if (instance !== null && callback !== null) {
+          try {
+            instance.off('result', callback);
+          } catch (error) {
+          }
+        }
+        if (PrivateBookService.authInstance === instance) {
+          PrivateBookService.authInstance = null;
+        }
+        PrivateBookService.authFinish = null;
+        resolve(ok);
+      };
+      PrivateBookService.authFinish = finish;
       const authParam: userAuth.AuthParam = {
         challenge: CryptoUtil.randomBytes(16),
-        authType: [userAuth.UserAuthType.FACE, userAuth.UserAuthType.FINGERPRINT],
-        authTrustLevel: userAuth.AuthTrustLevel.ATL3
+        authType: capability.authTypes,
+        authTrustLevel: capability.trustLevel
       };
       const widgetParam: userAuth.WidgetParam = {
         title: '解锁私密账本',
+        navigationButtonText: '使用密码',
         uiContext: context
       };
       try {
-        const instance: userAuth.UserAuthInstance = userAuth.getUserAuthInstance(authParam, widgetParam);
-        const callback: userAuth.IAuthCallback = {
+        instance = userAuth.getUserAuthInstance(authParam, widgetParam);
+        PrivateBookService.authInstance = instance;
+        callback = {
           onResult: (result: userAuth.UserAuthResult): void => {
-            resolve(result.result === userAuth.UserAuthResultCode.SUCCESS);
+            finish(result.result === userAuth.UserAuthResultCode.SUCCESS);
           }
         };
         instance.on('result', callback);
+        PrivateBookService.authTimer = setTimeout(() => {
+          finish(false);
+          if (instance !== null) {
+            try {
+              instance.cancel();
+            } catch (error) {
+            }
+          }
+        }, BIOMETRIC_TIMEOUT_MS);
         instance.start();
       } catch (error) {
-        resolve(false);
+        finish(false);
       }
     });
+  }
+
+  private static availableTypes(level: userAuth.AuthTrustLevel): userAuth.UserAuthType[] {
+    const types: userAuth.UserAuthType[] = [];
+    if (PrivateBookService.supports(userAuth.UserAuthType.FINGERPRINT, level)) {
+      types.push(userAuth.UserAuthType.FINGERPRINT);
+    }
+    if (PrivateBookService.supports(userAuth.UserAuthType.FACE, level)) {
+      types.push(userAuth.UserAuthType.FACE);
+    }
+    return types;
+  }
+
+  private static supports(type: userAuth.UserAuthType, level: userAuth.AuthTrustLevel): boolean {
+    try {
+      userAuth.getAvailableStatus(type, level);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  private static authLabel(types: userAuth.UserAuthType[]): string {
+    const hasFace: boolean = types.indexOf(userAuth.UserAuthType.FACE) >= 0;
+    const hasFinger: boolean = types.indexOf(userAuth.UserAuthType.FINGERPRINT) >= 0;
+    if (hasFace && hasFinger) {
+      return '指纹/面容';
+    }
+    return hasFace ? '面容' : '指纹';
+  }
+
+  private static biometricChanged(types: userAuth.UserAuthType[]): boolean {
+    for (const type of types) {
+      const stored: string = SettingsService.getString(PrivateBookService.digestKey(type), '');
+      if (stored.length === 0) {
+        continue;
+      }
+      const current: string = PrivateBookService.currentDigest(type);
+      if (current.length > 0 && current !== stored) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private static async storeDigest(type: userAuth.UserAuthType): Promise<void> {
+    const current: string = PrivateBookService.currentDigest(type);
+    if (current.length > 0) {
+      await SettingsService.setString(PrivateBookService.digestKey(type), current);
+    }
+  }
+
+  private static currentDigest(type: userAuth.UserAuthType): string {
+    try {
+      const state: userAuth.EnrolledState = userAuth.getEnrolledState(type);
+      if (state.credentialCount <= 0 || state.credentialDigest === 0) {
+        return '';
+      }
+      return state.credentialDigest.toString();
+    } catch (error) {
+      return '';
+    }
+  }
+
+  private static digestKey(type: userAuth.UserAuthType): string {
+    return type === userAuth.UserAuthType.FACE ? 'biometric_face_digest' : 'biometric_fingerprint_digest';
   }
 
   private static recordFailure(bookId: string): void {

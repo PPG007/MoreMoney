@@ -67,6 +67,24 @@ export struct AddTxnPage {
     this.load();
   }
 
+  @Monitor('ui.bookVersion')
+  onBooksChanged(): void {
+    this.reloadBooks();
+  }
+
+  private async reloadBooks(): Promise<void> {
+    try {
+      this.books = (await BookDao.list()).filter((book: Book): boolean => !book.archived);
+      const exists: boolean = this.books.some((book: Book): boolean => book.id === this.selectedBookId);
+      if (!exists) {
+        this.selectedBookId = this.resolveBookId();
+      }
+      this.updateLabels();
+    } catch (error) {
+      SnackBarService.show(AddTxnPage.errorOptions(ErrorUtil.messageOf(error)));
+    }
+  }
+
   private async load(): Promise<void> {
     try {
       this.books = (await BookDao.list()).filter((book: Book): boolean => !book.archived);

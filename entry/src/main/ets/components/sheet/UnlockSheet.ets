@@ -1,7 +1,7 @@
 import { AppFont, Radius, Shadow, Space } from '../../theme/Theme';
 import { GlobalUiStore } from '../../state/GlobalUiStore';
 import { UiStore } from '../../state/UiStore';
-import { PrivateBookService } from '../../service/PrivateBookService';
+import { BiometricCapability, PrivateBookService } from '../../service/PrivateBookService';
 import { ScreenPrivacyService } from '../../service/ScreenPrivacyService';
 import { PrimaryButton } from '../../components/base/PrimaryButton';
 import { SecondaryButton } from '../../components/base/SecondaryButton';
@@ -18,12 +18,14 @@ export struct UnlockSheet {
   @Local ui: GlobalUiStore = UiStore.instance();
   @Local password: string = '';
   @Local errorText: string = '';
-  @Local bioAvailable: boolean = false;
+  @Local bioCapability: BiometricCapability = new BiometricCapability();
+  @Local bioBusy: boolean = false;
   @Local lockSeconds: number = 0;
   private timerId: number = -1;
 
   aboutToDisappear(): void {
     this.stopTimer();
+    PrivateBookService.cancelBiometric();
   }
 
   @Monitor('visible')
@@ -31,7 +33,8 @@ export struct UnlockSheet {
     if (this.visible) {
       this.password = '';
       this.errorText = '';
-      this.bioAvailable = PrivateBookService.biometricAvailable();
+      this.bioCapability = PrivateBookService.biometricCapability();
+      this.bioBusy = false;
       this.lockSeconds = PrivateBookService.remainingLockSeconds(this.bookId);
       this.startTimer();
       const context = this.getUIContext().getHostContext();
@@ -41,6 +44,7 @@ export struct UnlockSheet {
       }
     } else {
       this.stopTimer();
+      PrivateBookService.cancelBiometric();
       const context = this.getUIContext().getHostContext();
       if (context !== undefined) {
         ScreenPrivacyService.disable(context).catch(() => {
@@ -85,6 +89,7 @@ export struct UnlockSheet {
     }
     const ok: boolean = await PrivateBookService.verify(this.bookId, this.password);
     if (ok) {
+      await PrivateBookService.rememberBiometric();
       this.finishUnlock();
       return;
     }
@@ -100,15 +105,25 @@ export struct UnlockSheet {
   }
 
   private async biometric(): Promise<void> {
+    if (this.bioBusy) {
+      return;
+    }
     const context = this.getUIContext().getHostContext();
     if (context === undefined) {
       return;
     }
-    const ok: boolean = await PrivateBookService.authenticateBiometric(context);
-    if (ok) {
-      this.finishUnlock();
-    } else {
-      this.errorText = '生物识别未通过，请使用密码';
+    this.bioBusy = true;
+    this.errorText = '';
+    try {
+      const ok: boolean = await PrivateBookService.authenticateBiometric(context);
+      if (ok) {
+        await PrivateBookService.rememberBiometric();
+        this.finishUnlock();
+      } else {
+        this.errorText = '生物识别未通过，请使用密码';
+      }
+    } finally {
+      this.bioBusy = false;
     }
   }
 
@@ -126,6 +141,7 @@ export struct UnlockSheet {
 
   private close(): void {
     this.stopTimer();
+    PrivateBookService.cancelBiometric();
     const context = this.getUIContext().getHostContext();
     if (context !== undefined) {
       ScreenPrivacyService.disable(context).catch(() => {
@@ -190,13 +206,20 @@ export struct UnlockSheet {
               .width('100%')
           }
 
-          if (this.bioAvailable) {
+          if (this.bioCapability.changed) {
+            Text('设备生物识别信息已变更，请先用密码解锁')
+              .fontSize(AppFont.micro)
+              .fontColor($r('app.color.warn'))
+              .width('100%')
+          }
+
+          if (this.bioCapability.available) {
             Row({ space: 6 }) {
               Image($r('app.media.ic_fingerprint'))
                 .width(17)
                 .height(17)
                 .fillColor($r('app.color.brand_ink'))
-              Text('使用指纹/面容解锁')
+              Text(this.bioBusy ? '验证中…' : '使用'.concat(this.bioCapability.label).concat('解锁'))
                 .fontSize(AppFont.micro)
                 .fontWeight(AppFont.semibold)
                 .fontColor($r('app.color.brand_ink'))
@@ -206,9 +229,27 @@ export struct UnlockSheet {
             .justifyContent(FlexAlign.Center)
             .borderRadius(Radius.input)
             .backgroundColor($r('app.color.brand_wash'))
+            .opacity(this.bioBusy ? 0.6 : 1)
             .onClick(() => {
               this.biometric();
             })
+          } else if (!this.bioCapability.changed) {
+            Row({ space: 6 }) {
+              Image($r('app.media.ic_fingerprint'))
+                .width(17)
+                .height(17)
+                .fillColor($r('app.color.ink_3'))
+              Text(this.bioCapability.enrolled
+                ? '生物识别暂不可用，请使用密码'
+                : '未检测到已录入的指纹/面容，请使用密码')
+                .fontSize(AppFont.micro)
+                .fontColor($r('app.color.ink_3'))
+            }
+            .width('100%')
+            .height(40)
+            .justifyContent(FlexAlign.Center)
+            .borderRadius(Radius.input)
+            .backgroundColor($r('app.color.surface_2'))
           }
 
           Row({ space: Space.x2 }) {
