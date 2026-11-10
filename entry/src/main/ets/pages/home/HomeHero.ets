@@ -8,7 +8,8 @@ import { UiStore } from '../../state/UiStore';
 
 @ComponentV2
 export struct HomeHero {
-  @Param monthLabel: string = '';
+  @Param periodLabel: string = '';
+  @Param periodIndex: number = 1;
   @Param books: Book[] = [];
   @Param selectedBookId: string = '';
   @Param lockedBookIds: string[] = [];
@@ -16,14 +17,20 @@ export struct HomeHero {
   };
   @Event onSearch: () => void = () => {
   };
-  @Event onPrevMonth: () => void = () => {
+  @Event onSelectPeriod: (index: number) => void = (index: number) => {
   };
-  @Event onNextMonth: () => void = () => {
+  @Event onPrevPeriod: () => void = () => {
+  };
+  @Event onNextPeriod: () => void = () => {
   };
   @Local ui: GlobalUiStore = UiStore.instance();
 
   private isLocked(bookId: string): boolean {
     return this.lockedBookIds.indexOf(bookId) >= 0;
+  }
+
+  private static periodOptions(): string[] {
+    return ['周', '月', '年'];
   }
 
   @Builder
@@ -62,19 +69,41 @@ export struct HomeHero {
       }
       .width('100%')
 
+      Row({ space: 6 }) {
+        ForEach(HomeHero.periodOptions(), (label: string, index: number) => {
+          Text(label)
+            .fontSize(AppFont.caption)
+            .fontWeight(this.periodIndex === index ? AppFont.semibold : AppFont.regular)
+            .fontColor($r('app.color.on_hero'))
+            .opacity(this.periodIndex === index ? 1 : 0.68)
+            .padding({ left: 13, right: 13, top: 5, bottom: 5 })
+            .borderRadius(Radius.pill)
+            .backgroundColor(this.periodIndex === index ? $r('app.color.hero_glass') : Color.Transparent)
+            .border({
+              width: 1,
+              color: this.periodIndex === index ? $r('app.color.hero_line') : Color.Transparent
+            })
+            .onClick(() => {
+              this.onSelectPeriod(index);
+            })
+        }, (label: string) => label)
+      }
+      .width('100%')
+
       Row({ space: Space.x5 }) {
         this.heroIconButton($r('app.media.ic_chevron_left'), () => {
-          this.onPrevMonth();
+          this.onPrevPeriod();
         })
-        Text(this.monthLabel)
-          .fontSize(AppFont.month)
+        Text(this.periodLabel)
+          .fontSize(this.periodIndex === 0 ? 20 : AppFont.month)
           .fontWeight(AppFont.bold)
           .fontColor($r('app.color.on_hero'))
           .fontFeature(AppFont.tnum)
+          .maxLines(1)
           .layoutWeight(1)
           .textAlign(TextAlign.Center)
         this.heroIconButton($r('app.media.ic_chevron_right'), () => {
-          this.onNextMonth();
+          this.onNextPeriod();
         })
       }
       .width('100%')

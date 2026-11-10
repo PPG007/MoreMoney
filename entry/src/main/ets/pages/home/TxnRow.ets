@@ -16,8 +16,6 @@ export struct TxnRow {
   @Param isLast: boolean = false;
   @Param showDate: boolean = false;
   @Param bookName: string = '';
-  @Event onLongPress: () => void = () => {
-  };
   @Event onTap: () => void = () => {
   };
   @Local ui: GlobalUiStore = UiStore.instance();
@@ -130,8 +128,5 @@ export struct TxnRow {
     .onClick(() => {
       this.onTap();
     })
-    .gesture(LongPressGesture({ repeat: false, duration: 400 }).onAction(() => {
-      this.onLongPress();
-    }))
   }
 }

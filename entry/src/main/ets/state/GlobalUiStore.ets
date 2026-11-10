@@ -2,6 +2,7 @@
 export class SnackBarState {
   @Trace message: string = '';
   @Trace actionLabel: string = '';
+  @Trace tone: string = 'info';
   @Trace visible: boolean = false;
   @Trace token: number = 0;
 }
@@ -15,9 +16,14 @@ export class GlobalUiStore {
   @Trace snackbar: SnackBarState = new SnackBarState();
   @Trace unlockVersion: number = 0;
   @Trace txnVersion: number = 0;
+  @Trace budgetVersion: number = 0;
 
   notifyTxnChanged(): void {
     this.txnVersion += 1;
+  }
+
+  notifyBudgetChanged(): void {
+    this.budgetVersion += 1;
   }
 
   unlockedUntil: Record<string, number> = {};

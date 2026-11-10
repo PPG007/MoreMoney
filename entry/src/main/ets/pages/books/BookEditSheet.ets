@@ -5,9 +5,6 @@ import { UiStore } from '../../state/UiStore';
 import { PrimaryButton } from '../../components/base/PrimaryButton';
 import { ToggleRow } from '../../components/base/ToggleRow';
 import { PasswordSetupSheet } from '../../components/sheet/PasswordSetupSheet';
-import { formatYuan, parseYuanToCents } from '../../utils/MoneyUtil';
-
-const MAX_BUDGET_CENTS: number = 9999999999;
 
 export class BookDraft {
   id: string = '';
@@ -16,8 +13,6 @@ export class BookDraft {
   color: string = SeedColors.c1;
   wantPrivate: boolean = false;
   newPassword: string = '';
-  clearBudget: boolean = false;
-  budgetCents: number = 0;
 }
 
 class BookIconOption {
@@ -37,7 +32,6 @@ export struct BookEditSheet {
   @Param initialIcon: string = 'ic_book_daily';
   @Param initialColor: string = SeedColors.c1;
   @Param initialPrivate: boolean = false;
-  @Param initialBudgetCents: number = 0;
   @Event onSave: (draft: BookDraft) => void = (draft: BookDraft) => {
   };
   @Event onClose: () => void = () => {
@@ -47,7 +41,6 @@ export struct BookEditSheet {
   @Local icon: string = 'ic_book_daily';
   @Local color: string = SeedColors.c1;
   @Local privateOn: boolean = false;
-  @Local budgetText: string = '';
   @Local showPwd: boolean = false;
   @Local errorText: string = '';
 
@@ -58,7 +51,6 @@ export struct BookEditSheet {
       this.icon = this.initialIcon;
       this.color = this.initialColor;
       this.privateOn = this.initialPrivate;
-      this.budgetText = this.initialBudgetCents > 0 ? formatYuan(this.initialBudgetCents) : '';
       this.pendingPassword = '';
       this.showPwd = false;
       this.errorText = '';
@@ -111,23 +103,6 @@ export struct BookEditSheet {
     draft.color = this.color;
     draft.wantPrivate = this.privateOn;
     draft.newPassword = this.pendingPassword;
-    const raw: string = this.budgetText.trim();
-    if (raw.length === 0) {
-      draft.clearBudget = true;
-      draft.budgetCents = 0;
-    } else {
-      const cents: number | null = parseYuanToCents(raw);
-      if (cents === null) {
-        this.errorText = '预算金额格式不正确（最多两位小数）';
-        return;
-      }
-      if (cents > MAX_BUDGET_CENTS) {
-        this.errorText = '预算金额超出上限';
-        return;
-      }
-      draft.clearBudget = false;
-      draft.budgetCents = cents;
-    }
     this.onSave(draft);
   }
 
@@ -271,35 +246,6 @@ export struct BookEditSheet {
                 }
               }
             })
-
-            Column({ space: 6 }) {
-              Text('本月预算（可选）')
-                .fontSize(AppFont.micro)
-                .fontColor($r('app.color.ink_3'))
-                .width('100%')
-              Row({ space: 6 }) {
-                Text('¥')
-                  .fontSize(AppFont.subTitle)
-                  .fontWeight(AppFont.bold)
-                  .fontColor($r('app.color.ink'))
-                TextInput({ text: this.budgetText, placeholder: '不设置预算' })
-                  .layoutWeight(1)
-                  .height(44)
-                  .type(InputType.Number)
-                  .fontSize(AppFont.settings)
-                  .fontColor($r('app.color.ink'))
-                  .placeholderColor($r('app.color.ink_3'))
-                  .backgroundColor($r('app.color.surface_2'))
-                  .borderRadius(Radius.input)
-                  .onChange((value: string) => {
-                    this.budgetText = value;
-                    this.errorText = '';
-                  })
-              }
-              .width('100%')
-            }
-            .width('100%')
-            .alignItems(HorizontalAlign.Start)
 
             PrimaryButton({
               label: '保存',

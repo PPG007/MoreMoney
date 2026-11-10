@@ -3,7 +3,10 @@ import { GlobalUiStore } from '../../state/GlobalUiStore';
 import { UiStore } from '../../state/UiStore';
 import { PrimaryButton } from '../../components/base/PrimaryButton';
 import { SecondaryButton } from '../../components/base/SecondaryButton';
+import { SegmentedControl } from '../../components/base/SegmentedControl';
 import { formatCents, formatYuan, parseYuanToCents } from '../../utils/MoneyUtil';
+import { BookBudgetState } from '../../service/BudgetService';
+import { BudgetPeriod, BudgetPeriodType } from '../../service/BudgetPeriod';
 
 const MAX_CENTS: number = 9999999999;
 
@@ -11,23 +14,51 @@ const MAX_CENTS: number = 9999999999;
 export struct BudgetEditDialog {
   @Param visible: boolean = false;
   @Param bookName: string = '';
-  @Param periodLabel: string = '';
-  @Param currentCents: number = 0;
-  @Param spentCents: number = 0;
-  @Event onSave: (cents: number) => void = (cents: number) => {
+  @Param state: BookBudgetState = new BookBudgetState();
+  @Param initialType: BudgetPeriodType = BudgetPeriodType.MONTH;
+  @Event onSave: (type: BudgetPeriodType, cents: number) => void = (type: BudgetPeriodType, cents: number) => {
   };
   @Event onClose: () => void = () => {
   };
   @Local ui: GlobalUiStore = UiStore.instance();
+  @Local selectedType: BudgetPeriodType = BudgetPeriodType.MONTH;
   @Local text: string = '';
   @Local errorText: string = '';
 
   @Monitor('visible')
   onVisibleChanged(): void {
     if (this.visible) {
-      this.text = this.currentCents > 0 ? formatYuan(this.currentCents) : '';
+      this.selectedType = this.initialType;
+      const current: number = this.state.amountOf(this.selectedType);
+      this.text = current > 0 ? formatYuan(current) : '';
       this.errorText = '';
     }
+  }
+
+  private selectType(index: number): void {
+    const type: BudgetPeriodType = BudgetPeriod.at(index);
+    if (type === this.selectedType) {
+      return;
+    }
+    this.selectedType = type;
+    const current: number = this.state.amountOf(type);
+    this.text = current > 0 ? formatYuan(current) : '';
+    this.errorText = '';
+  }
+
+  private spentText(): string {
+    return this.bookName.concat(' · ').concat(BudgetPeriod.noun(this.selectedType)).concat('已用 ')
+      .concat(formatCents(this.state.spentOf(this.selectedType)));
+  }
+
+  private existingText(): string {
+    return '已有 周 '.concat(BudgetEditDialog.amountText(this.state.weekCents))
+      .concat(' · 月 ').concat(BudgetEditDialog.amountText(this.state.monthCents))
+      .concat(' · 年 ').concat(BudgetEditDialog.amountText(this.state.yearCents));
+  }
+
+  private static amountText(cents: number): string {
+    return cents > 0 ? formatCents(cents) : '未设置';
   }
 
   private addCents(cents: number): void {
@@ -45,7 +76,7 @@ export struct BudgetEditDialog {
   private submit(): void {
     const raw: string = this.text.trim();
     if (raw.length === 0) {
-      this.onSave(0);
+      this.onSave(this.selectedType, 0);
       return;
     }
     const cents: number | null = parseYuanToCents(raw);
@@ -57,7 +88,13 @@ export struct BudgetEditDialog {
       this.errorText = '金额超出上限';
       return;
     }
-    this.onSave(cents);
+    const next: BookBudgetState = this.state.withAmount(this.selectedType, cents);
+    const error: string = BudgetPeriod.validate(next.weekCents, next.monthCents, next.yearCents);
+    if (error.length > 0) {
+      this.errorText = error;
+      return;
+    }
+    this.onSave(this.selectedType, cents);
   }
 
   build() {
@@ -73,7 +110,7 @@ export struct BudgetEditDialog {
 
         Column({ space: Space.x4 }) {
           Row() {
-            Text('设置'.concat(this.periodLabel).concat('预算'))
+            Text('设置预算')
               .fontSize(AppFont.subTitle)
               .fontWeight(AppFont.bold)
               .fontColor($r('app.color.ink'))
@@ -87,8 +124,21 @@ export struct BudgetEditDialog {
           }
           .width('100%')
 
-          Text(this.bookName.concat(' · 本月已用 ').concat(formatCents(this.spentCents)))
+          SegmentedControl({
+            options: ['周预算', '月预算', '年预算'],
+            selectedIndex: BudgetPeriod.indexOf(this.selectedType),
+            onChange: (index: number) => {
+              this.selectType(index);
+            }
+          })
+
+          Text(this.spentText())
             .fontSize(AppFont.caption)
+            .fontColor($r('app.color.ink_3'))
+            .width('100%')
+
+          Text(this.existingText())
+            .fontSize(AppFont.micro)
             .fontColor($r('app.color.ink_3'))
             .width('100%')
 
@@ -100,7 +150,7 @@ export struct BudgetEditDialog {
             TextInput({ text: this.text, placeholder: '0.00' })
               .layoutWeight(1)
               .height(45)
-              .type(InputType.Number)
+              .type(InputType.NUMBER_DECIMAL)
               .fontSize(AppFont.subTitle)
               .fontWeight(AppFont.bold)
               .fontColor($r('app.color.ink'))
@@ -121,6 +171,11 @@ export struct BudgetEditDialog {
               .fontColor($r('app.color.expense'))
               .width('100%')
           }
+
+          Text('同一账本可同时设置周、月、年预算，周 × 4 不超过月，月 × 12 不超过年。')
+            .fontSize(AppFont.micro)
+            .fontColor($r('app.color.ink_3'))
+            .width('100%')
 
           Row({ space: 8 }) {
             Text('+100')
@@ -159,6 +214,7 @@ export struct BudgetEditDialog {
               .fontColor($r('app.color.ink_3'))
               .onClick(() => {
                 this.text = '';
+                this.errorText = '';
               })
           }
           .width('100%')

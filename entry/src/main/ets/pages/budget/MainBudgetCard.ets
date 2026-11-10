@@ -33,6 +33,8 @@ struct BudgetStatRow {
 export struct MainBudgetCard {
   @Param view: BudgetBookView | null = null;
   @Param perDayCents: number = 0;
+  @Event onTap: () => void = () => {
+  };
   @Local ui: GlobalUiStore = UiStore.instance();
 
   private percentText(): string {
@@ -103,6 +105,9 @@ export struct MainBudgetCard {
       .borderRadius(Radius.cardLg)
       .backgroundColor($r('app.color.surface'))
       .border({ width: 1, color: $r('app.color.line') })
+      .onClick(() => {
+        this.onTap();
+      })
     }
   }
 }

@@ -91,6 +91,10 @@ export class CalcEngine {
     this.expression = '';
   }
 
+  loadExpression(expression: string): void {
+    this.expression = expression;
+  }
+
   evaluate(): CalcResult {
     const result: CalcResult = new CalcResult();
     if (this.expression.length === 0) {

@@ -42,6 +42,21 @@ export class BudgetDao {
     return list;
   }
 
+  static async listByBook(bookId: string): Promise<Budget[]> {
+    const rs: relationalStore.ResultSet = await DbManager.store.querySql(
+      'SELECT * FROM budget WHERE book_id = ?', [bookId]
+    );
+    const list: Budget[] = [];
+    try {
+      while (rs.goToNextRow()) {
+        list.push(DbMapper.toBudget(rs));
+      }
+    } finally {
+      rs.close();
+    }
+    return list;
+  }
+
   static async listAll(): Promise<Budget[]> {
     const rs: relationalStore.ResultSet = await DbManager.store.querySql('SELECT * FROM budget');
     const list: Budget[] = [];

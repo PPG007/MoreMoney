@@ -24,6 +24,11 @@ export class TxnDao {
     );
   }
 
+  static async getById(id: string): Promise<Txn | null> {
+    const list: Txn[] = await TxnDao.queryList('SELECT * FROM txn WHERE id = ? LIMIT 1', [id]);
+    return list.length > 0 ? list[0] : null;
+  }
+
   static async softDelete(id: string): Promise<void> {
     const now: number = Date.now();
     await DbManager.store.executeSql('UPDATE txn SET deleted_at = ?, updated_at = ? WHERE id = ?', [now, now, id]);

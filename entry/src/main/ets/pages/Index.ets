@@ -50,7 +50,7 @@ struct Index {
   }
 
   build() {
-    Stack({ alignContent: Alignment.Bottom }) {
+    Stack({ alignContent: Alignment.Top }) {
       if (this.dbReady) {
         Navigation(this.stack) {
           MainTabs({

@@ -15,7 +15,7 @@ import { IdUtil } from '../../utils/IdUtil';
 import { formatCents } from '../../utils/MoneyUtil';
 import { SettingsService } from '../../service/SettingsService';
 import { SnackBarService } from '../../service/SnackBarService';
-import { SnackBarOptions } from '../../service/SnackBarService';
+import { SnackBarOptions, SnackTone } from '../../service/SnackBarService';
 import { CategoryPicker, CategoryGroupData } from './CategoryPicker';
 import { SelectorRow } from './SelectorRow';
 import { AmountRow } from './AmountRow';
@@ -59,6 +59,7 @@ export struct AddTxnPage {
   @Local unlockBookId: string = '';
   @Local unlockBookName: string = '';
   @Local dirty: boolean = false;
+  @Local editingTxn: Txn | null = null;
   @Local loading: boolean = true;
   private engine: CalcEngine = new CalcEngine();
 
@@ -83,6 +84,8 @@ export struct AddTxnPage {
       if (this.param.dayKey.length > 0) {
         this.dayKey = this.param.dayKey;
       }
+      await this.applyEditParam();
+      this.applyDefaultCategory();
       this.updateLabels();
     } catch (error) {
       SnackBarService.show(AddTxnPage.errorOptions(ErrorUtil.messageOf(error)));
@@ -95,7 +98,45 @@ export struct AddTxnPage {
   private static errorOptions(message: string): SnackBarOptions {
     const options: SnackBarOptions = new SnackBarOptions();
     options.message = message;
+    options.tone = SnackTone.ERROR;
     return options;
+  }
+
+  private async applyEditParam(): Promise<void> {
+    if (this.param.txnId.length === 0) {
+      return;
+    }
+    const existing: Txn | null = await TxnDao.getById(this.param.txnId);
+    if (existing === null) {
+      return;
+    }
+    this.editingTxn = existing;
+    this.selectedCategoryId = existing.categoryId;
+    this.selectedMemberId = existing.memberId;
+    this.dayKey = existing.dayKey;
+    this.note = existing.note;
+    if (!this.isBookLocked(existing.bookId)) {
+      this.selectedBookId = existing.bookId;
+    }
+    this.engine.loadExpression(AddTxnPage.centsToExpression(existing.amountCents));
+    this.dirty = false;
+  }
+
+  private applyDefaultCategory(): void {
+    if (this.param.txnId.length > 0 || this.selectedCategoryId.length > 0 || this.groups.length === 0) {
+      return;
+    }
+    const frequent: Category[] = this.groups[0].categories;
+    if (frequent.length > 0) {
+      this.selectedCategoryId = frequent[0].id;
+    }
+  }
+
+  private static centsToExpression(cents: number): string {
+    const yuan: number = Math.floor(cents / 100);
+    const fen: number = cents - yuan * 100;
+    const frac: string = fen < 10 ? '0'.concat(fen.toString()) : fen.toString();
+    return yuan.toString().concat('.').concat(frac);
   }
 
   private resolveBookId(): string {
@@ -302,8 +343,10 @@ export struct AddTxnPage {
   }
 
   private hasInput(): boolean {
-    return this.dirty || this.selectedCategoryId.length > 0 || this.engine.expression.length > 0 ||
-      this.note.length > 0;
+    if (this.editingTxn !== null && !this.dirty) {
+      return false;
+    }
+    return this.dirty || this.engine.expression.length > 0 || this.note.length > 0;
   }
 
   private closePage(): void {
@@ -351,8 +394,9 @@ export struct AddTxnPage {
     const day: Date = DateUtil.parseDayKey(this.dayKey);
     const occurredAt: number = new Date(day.getFullYear(), day.getMonth(), day.getDate(),
       now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds()).getTime();
+    const editing: Txn | null = this.editingTxn;
     const txn: Txn = {
-      id: IdUtil.next(),
+      id: editing === null ? IdUtil.next() : editing.id,
       bookId: this.selectedBookId,
       categoryId: this.selectedCategoryId,
       memberId: this.selectedMemberId,
@@ -360,19 +404,37 @@ export struct AddTxnPage {
       occurredAt: occurredAt,
       dayKey: this.dayKey,
       note: this.note.trim(),
-      createdAt: now.getTime(),
+      createdAt: editing === null ? now.getTime() : editing.createdAt,
       updatedAt: now.getTime(),
       deletedAt: null
     };
     try {
-      await TxnDao.insert(txn);
+      if (editing === null) {
+        await TxnDao.insert(txn);
+      } else {
+        await TxnDao.update(txn);
+      }
       this.dirty = false;
       this.ui.notifyTxnChanged();
-      SnackBarService.show(AddTxnPage.successOptions(result.cents, txn.note));
+      SnackBarService.show(editing === null
+        ? AddTxnPage.successOptions(result.cents, txn.note)
+        : AddTxnPage.updatedOptions(txn.note));
       this.stack.pop(new NavResult());
     } catch (error) {
       SnackBarService.show(AddTxnPage.errorOptions('保存失败：'.concat(ErrorUtil.messageOf(error))));
     }
+  }
+
+  private static updatedOptions(note: string): SnackBarOptions {
+    const options: SnackBarOptions = new SnackBarOptions();
+    let message: string = '已保存修改';
+    if (note.length > 0) {
+      const short: string = note.length > 12 ? note.substring(0, 12).concat('…') : note;
+      message = message.concat(' · ').concat(short);
+    }
+    options.message = message;
+    options.tone = SnackTone.SUCCESS;
+    return options;
   }
 
   private static successOptions(cents: number, note: string): SnackBarOptions {
@@ -383,6 +445,7 @@ export struct AddTxnPage {
       message = message.concat(' · ').concat(short);
     }
     options.message = message;
+    options.tone = SnackTone.SUCCESS;
     return options;
   }
 
@@ -405,7 +468,7 @@ export struct AddTxnPage {
       })
 
       Column({ space: 1 }) {
-        Text('记一笔')
+        Text(this.editingTxn === null ? '记一笔' : '编辑记录')
           .fontSize(AppFont.row)
           .fontWeight(AppFont.bold)
           .fontColor($r('app.color.ink'))

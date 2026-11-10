@@ -76,6 +76,58 @@ export const SQL_CREATE_TABLES: string[] = [
   )`
 ];
 
+export const SQL_MIGRATE_BUDGET_PERIODS: string[] = [
+  `DELETE FROM budget
+   WHERE period NOT LIKE 'W%' AND period NOT LIKE 'Y%' AND period NOT IN ('week', 'month', 'year')
+     AND book_id IN (SELECT book_id FROM budget WHERE period = 'month')`,
+  `DELETE FROM budget
+   WHERE period NOT LIKE 'W%' AND period NOT LIKE 'Y%' AND period NOT IN ('week', 'month', 'year')
+     AND id NOT IN (
+       SELECT b.id FROM budget b
+       WHERE b.period NOT LIKE 'W%' AND b.period NOT LIKE 'Y%' AND b.period NOT IN ('week', 'month', 'year')
+         AND b.updated_at = (
+           SELECT MAX(c.updated_at) FROM budget c
+           WHERE c.book_id = b.book_id AND c.period NOT LIKE 'W%' AND c.period NOT LIKE 'Y%'
+             AND c.period NOT IN ('week', 'month', 'year')
+         )
+       GROUP BY b.book_id
+     )`,
+  `UPDATE budget SET period = 'month'
+   WHERE period NOT LIKE 'W%' AND period NOT LIKE 'Y%' AND period NOT IN ('week', 'month', 'year')`,
+  `DELETE FROM budget
+   WHERE period LIKE 'W%' AND period NOT IN ('week', 'month', 'year')
+     AND book_id IN (SELECT book_id FROM budget WHERE period = 'week')`,
+  `DELETE FROM budget
+   WHERE period LIKE 'W%' AND period NOT IN ('week', 'month', 'year')
+     AND id NOT IN (
+       SELECT b.id FROM budget b
+       WHERE b.period LIKE 'W%' AND b.period NOT IN ('week', 'month', 'year')
+         AND b.updated_at = (
+           SELECT MAX(c.updated_at) FROM budget c
+           WHERE c.book_id = b.book_id AND c.period LIKE 'W%' AND c.period NOT IN ('week', 'month', 'year')
+         )
+       GROUP BY b.book_id
+     )`,
+  `UPDATE budget SET period = 'week'
+   WHERE period LIKE 'W%' AND period NOT IN ('week', 'month', 'year')`,
+  `DELETE FROM budget
+   WHERE period LIKE 'Y%' AND period NOT IN ('week', 'month', 'year')
+     AND book_id IN (SELECT book_id FROM budget WHERE period = 'year')`,
+  `DELETE FROM budget
+   WHERE period LIKE 'Y%' AND period NOT IN ('week', 'month', 'year')
+     AND id NOT IN (
+       SELECT b.id FROM budget b
+       WHERE b.period LIKE 'Y%' AND b.period NOT IN ('week', 'month', 'year')
+         AND b.updated_at = (
+           SELECT MAX(c.updated_at) FROM budget c
+           WHERE c.book_id = b.book_id AND c.period LIKE 'Y%' AND c.period NOT IN ('week', 'month', 'year')
+         )
+       GROUP BY b.book_id
+     )`,
+  `UPDATE budget SET period = 'year'
+   WHERE period LIKE 'Y%' AND period NOT IN ('week', 'month', 'year')`
+];
+
 export const SQL_CREATE_INDEXES: string[] = [
   'CREATE INDEX IF NOT EXISTS idx_txn_book_day ON txn(book_id, day_key)',
   'CREATE INDEX IF NOT EXISTS idx_txn_day ON txn(day_key)',

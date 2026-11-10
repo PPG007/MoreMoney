@@ -14,6 +14,8 @@ import { SnackBarService } from '../../service/SnackBarService';
 import { SnackBarOptions } from '../../service/SnackBarService';
 import { PrivateBookService } from '../../service/PrivateBookService';
 import { SettingsService } from '../../service/SettingsService';
+import { BookBudgetState, BudgetService } from '../../service/BudgetService';
+import { BudgetPeriod, BudgetPeriodType } from '../../service/BudgetPeriod';
 import { BookCard, BookViewData } from './BookCard';
 import { BookEditSheet, BookDraft } from './BookEditSheet';
 import { BookActions } from './BookActions';
@@ -38,15 +40,14 @@ export struct BookManagePage {
   @Local loading: boolean = true;
   @Local showEdit: boolean = false;
   @Local editingBook: Book | null = null;
-  @Local editingBudgetCents: number = 0;
   @Local showActions: boolean = false;
   @Local actionBook: Book | null = null;
   @Local actionCanDelete: boolean = true;
   @Local showBudgetDialog: boolean = false;
   @Local dialogBookId: string = '';
   @Local dialogBookName: string = '';
-  @Local dialogCurrent: number = 0;
-  @Local dialogSpent: number = 0;
+  @Local dialogState: BookBudgetState = new BookBudgetState();
+  @Local dialogInitialType: BudgetPeriodType = BudgetPeriodType.MONTH;
   @Local showUnlock: boolean = false;
   @Local unlockBookId: string = '';
   @Local unlockBookName: string = '';
@@ -63,10 +64,15 @@ export struct BookManagePage {
     this.reload();
   }
 
+  @Monitor('ui.budgetVersion')
+  onBudgetChanged(): void {
+    this.reload();
+  }
+
   private async reload(): Promise<void> {
     try {
       const all: Book[] = await BookDao.list();
-      const budgets: Budget[] = await BudgetDao.list(this.monthKey);
+      const budgets: Budget[] = await BudgetDao.list(BudgetPeriodType.MONTH);
       const range: DateRange = DateUtil.rangeOfMonth(this.monthKey);
       const views: BookViewData[] = [];
       for (const book of all) {
@@ -107,6 +113,27 @@ export struct BookManagePage {
     return options;
   }
 
+  private static viewKey(view: BookViewData): string {
+    return view.book.id.concat('#')
+      .concat(view.book.name)
+      .concat('#')
+      .concat(view.book.icon)
+      .concat('#')
+      .concat(view.book.color)
+      .concat('#')
+      .concat(view.book.isDefault ? '1' : '0')
+      .concat('#')
+      .concat(view.book.isPrivate ? '1' : '0')
+      .concat('#')
+      .concat(view.book.archived ? '1' : '0')
+      .concat('#')
+      .concat(view.count.toString())
+      .concat('#')
+      .concat(view.budgetCents.toString())
+      .concat('#')
+      .concat(view.spentCents.toString());
+  }
+
   private isLocked(book: Book): boolean {
     if (!book.isPrivate) {
       return false;
@@ -125,7 +152,6 @@ export struct BookManagePage {
 
   private openCreate(): void {
     this.editingBook = null;
-    this.editingBudgetCents = 0;
     this.showEdit = true;
   }
 
@@ -135,8 +161,6 @@ export struct BookManagePage {
       return;
     }
     this.editingBook = book;
-    const view: BookViewData | undefined = this.viewOf(bookId);
-    this.editingBudgetCents = view === undefined ? 0 : view.budgetCents;
     this.showEdit = true;
   }
 
@@ -178,7 +202,6 @@ export struct BookManagePage {
         if (draft.wantPrivate && draft.newPassword.length > 0) {
           await PrivateBookService.setPassword(book.id, draft.newPassword);
         }
-        await this.applyBudget(book.id, draft);
       } else {
         const book: Book | undefined = this.bookOf(draft.id);
         if (book === undefined) {
@@ -192,7 +215,6 @@ export struct BookManagePage {
           return;
         }
         await this.updateBook(book, draft);
-        await this.applyBudget(book.id, draft);
       }
       this.showEdit = false;
       this.editingBook = null;
@@ -225,14 +247,6 @@ export struct BookManagePage {
     }
   }
 
-  private async applyBudget(bookId: string, draft: BookDraft): Promise<void> {
-    if (draft.clearBudget || draft.budgetCents <= 0) {
-      await BudgetDao.remove(bookId, this.monthKey);
-    } else {
-      await BudgetDao.upsert(bookId, this.monthKey, draft.budgetCents);
-    }
-  }
-
   private async onUnlockedForEdit(bookId: string): Promise<void> {
     this.showUnlock = false;
     const draft: BookDraft | null = this.pendingDraft;
@@ -246,7 +260,6 @@ export struct BookManagePage {
       const book: Book | undefined = this.bookOf(bookId);
       if (book !== undefined) {
         await this.updateBook(book, draft);
-        await this.applyBudget(bookId, draft);
       }
       this.showEdit = false;
       this.editingBook = null;
@@ -384,28 +397,30 @@ export struct BookManagePage {
     }
   }
 
-  private openBudget(bookId: string): void {
+  private async openBudget(bookId: string): Promise<void> {
     const view: BookViewData | undefined = this.viewOf(bookId);
     if (view === undefined) {
       return;
     }
-    this.dialogBookId = bookId;
-    this.dialogBookName = view.book.name;
-    this.dialogCurrent = view.budgetCents;
-    this.dialogSpent = view.spentCents;
-    this.showBudgetDialog = true;
+    try {
+      this.dialogState = await BudgetService.getBookState(bookId);
+      this.dialogBookId = bookId;
+      this.dialogBookName = view.book.name;
+      this.dialogInitialType = BudgetPeriodType.MONTH;
+      this.showBudgetDialog = true;
+    } catch (error) {
+      SnackBarService.show(BookManagePage.toast('读取预算失败：'.concat(ErrorUtil.messageOf(error))));
+    }
   }
 
-  private async saveBudget(cents: number): Promise<void> {
+  private async saveBudget(type: BudgetPeriodType, cents: number): Promise<void> {
     try {
-      if (cents > 0) {
-        await BudgetDao.upsert(this.dialogBookId, this.monthKey, cents);
-      } else {
-        await BudgetDao.remove(this.dialogBookId, this.monthKey);
-      }
+      await BudgetService.setBudget(this.dialogBookId, type, cents);
       this.showBudgetDialog = false;
       await this.reload();
-      SnackBarService.show(BookManagePage.toast(cents > 0 ? '预算已保存' : '已取消本月预算'));
+      SnackBarService.show(BookManagePage.toast(
+        cents > 0 ? '预算已保存' : '已取消'.concat(BudgetPeriod.noun(type)).concat('预算')
+      ));
     } catch (error) {
       SnackBarService.show(BookManagePage.toast('保存失败：'.concat(ErrorUtil.messageOf(error))));
     }
@@ -587,7 +602,7 @@ export struct BookManagePage {
                   })
                 }
                 .margin({ bottom: 9 })
-              }, (view: BookViewData) => view.book.id)
+              }, (view: BookViewData) => BookManagePage.viewKey(view))
 
               ListItem() {
                 Row() {
@@ -659,7 +674,6 @@ export struct BookManagePage {
           initialIcon: this.editingBook === null ? 'ic_book_daily' : this.editingBook.icon,
           initialColor: this.editingBook === null ? SeedColors.c1 : this.editingBook.color,
           initialPrivate: this.editingBook === null ? false : this.editingBook.isPrivate,
-          initialBudgetCents: this.editingBudgetCents,
           onSave: (draft: BookDraft) => {
             this.saveDraft(draft);
           },
@@ -672,11 +686,10 @@ export struct BookManagePage {
         BudgetEditDialog({
           visible: this.showBudgetDialog,
           bookName: this.dialogBookName,
-          periodLabel: DateUtil.formatMonthCn(this.monthKey),
-          currentCents: this.dialogCurrent,
-          spentCents: this.dialogSpent,
-          onSave: (cents: number) => {
-            this.saveBudget(cents);
+          state: this.dialogState,
+          initialType: this.dialogInitialType,
+          onSave: (type: BudgetPeriodType, cents: number) => {
+            this.saveBudget(type, cents);
           },
           onClose: () => {
             this.showBudgetDialog = false;

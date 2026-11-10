@@ -57,6 +57,7 @@ struct SummaryStat {
 @ComponentV2
 export struct SummaryCard {
   @Param spentCents: number = 0;
+  @Param spentLabel: string = '本月支出';
   @Param budgetCents: number = 0;
   @Param hasBudget: boolean = false;
   @Param perDayCents: number = 0;
@@ -84,7 +85,7 @@ export struct SummaryCard {
   build() {
     Column({ space: Space.x5 }) {
       Column({ space: 2 }) {
-        Text('本月支出')
+        Text(this.spentLabel)
           .fontSize(AppFont.caption)
           .fontColor($r('app.color.ink_3'))
         Column() {

@@ -396,11 +396,24 @@ export class BackupService {
     const budget: Budget = {
       id: BackupService.dec(line.cells[0]),
       bookId: BackupService.dec(line.cells[1]),
-      period: BackupService.dec(line.cells[2]),
+      period: BackupService.normalizePeriod(BackupService.dec(line.cells[2])),
       amountCents: Number(line.cells[3]),
       updatedAt: Number(line.cells[4])
     };
     return budget;
+  }
+
+  private static normalizePeriod(raw: string): string {
+    if (raw === 'week' || raw === 'month' || raw === 'year') {
+      return raw;
+    }
+    if (raw.startsWith('W')) {
+      return 'week';
+    }
+    if (raw.startsWith('Y')) {
+      return 'year';
+    }
+    return 'month';
   }
 
   private static bookLine(book: Book): BackupLine {

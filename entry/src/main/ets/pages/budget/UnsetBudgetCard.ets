@@ -27,10 +27,10 @@ export struct UnsetBudgetCard {
             .fontSize(AppFont.settings)
             .fontWeight(AppFont.bold)
             .fontColor($r('app.color.ink'))
-          Text('还没有设置本月预算')
+          Text('还没有设置预算')
             .fontSize(AppFont.caption)
             .fontColor($r('app.color.ink_2'))
-          Text('未设置前不计入合计')
+          Text('可设置周、月、年预算，未设置前不计入合计')
             .fontSize(AppFont.caption)
             .fontColor($r('app.color.ink_3'))
         }

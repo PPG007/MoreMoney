@@ -172,12 +172,50 @@ export class ToneColors {
 }
 
 export class SnackColors {
-  static background(isDark: boolean): string {
-    return isDark ? withAlpha('#F4F0FA', 0.92) : withAlpha('#272231', 0.92);
+  static accent(tone: string, isDark: boolean): string {
+    if (tone === 'success') {
+      return isDark ? '#4FD1A0' : '#137A57';
+    }
+    if (tone === 'error') {
+      return isDark ? '#FF9A9A' : '#C62F3D';
+    }
+    if (tone === 'warning') {
+      return isDark ? '#F0B45A' : '#8A5200';
+    }
+    return isDark ? '#A5B4FC' : '#4338CA';
+  }
+
+  static surface(tone: string, isDark: boolean): string {
+    if (tone === 'success') {
+      return isDark ? '#18261F' : '#EAF7F1';
+    }
+    if (tone === 'error') {
+      return isDark ? '#2A1A1D' : '#FBECEE';
+    }
+    if (tone === 'warning') {
+      return isDark ? '#2A2218' : '#FCF4E7';
+    }
+    return isDark ? '#1E1B39' : '#EEF2FF';
+  }
+
+  static border(tone: string, isDark: boolean): string {
+    return withAlpha(SnackColors.accent(tone, isDark), isDark ? 0.42 : 0.32);
+  }
+
+  static iconWash(tone: string, isDark: boolean): string {
+    return withAlpha(SnackColors.accent(tone, isDark), isDark ? 0.2 : 0.14);
+  }
+
+  static muted(isDark: boolean): string {
+    return isDark ? '#B8AEC4' : '#6B6272';
+  }
+
+  static closeWash(isDark: boolean): string {
+    return isDark ? '#1FFFFFFF' : '#0F272231';
   }
 
   static text(isDark: boolean): string {
-    return isDark ? '#272231' : '#FFFFFF';
+    return isDark ? '#F4F0FA' : '#272231';
   }
 }
 

@@ -2,15 +2,15 @@
   "string": [
     {
       "name": "module_desc",
-      "value": "module description"
+      "value": "MoreMoney 记账本"
     },
     {
       "name": "EntryAbility_desc",
-      "value": "description"
+      "value": "轻松记录每一笔支出与预算"
     },
     {
       "name": "EntryAbility_label",
-      "value": "label"
+      "value": "MoreMoney"
     },
     {
       "name": "biometric_reason",

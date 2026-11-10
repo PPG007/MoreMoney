@@ -1,12 +1,12 @@
 import { relationalStore } from '@kit.ArkData';
 import { hilog } from '@kit.PerformanceAnalysisKit';
-import { SQL_CREATE_INDEXES, SQL_CREATE_TABLES } from './Schema';
+import { SQL_CREATE_INDEXES, SQL_CREATE_TABLES, SQL_MIGRATE_BUDGET_PERIODS } from './Schema';
 import { SeedData } from './SeedData';
 
 const DOMAIN: number = 0x0001;
 const TAG: string = 'MoreMoneyDb';
 const DB_NAME: string = 'moremoney.db';
-const SCHEMA_VERSION: number = 1;
+const SCHEMA_VERSION: number = 3;
 
 export class DbManager {
   private static storeInstance: relationalStore.RdbStore | null = null;
@@ -58,6 +58,9 @@ export class DbManager {
         await store.executeSql(sql);
       }
       for (const sql of SQL_CREATE_INDEXES) {
+        await store.executeSql(sql);
+      }
+      for (const sql of SQL_MIGRATE_BUDGET_PERIODS) {
         await store.executeSql(sql);
       }
       store.version = SCHEMA_VERSION;

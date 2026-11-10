@@ -8,7 +8,7 @@ import { BudgetDao } from '../../data/db/BudgetDao';
 import { CategoryDao } from '../../data/db/CategoryDao';
 import { MemberDao } from '../../data/db/MemberDao';
 import { TxnDao } from '../../data/db/TxnDao';
-import { DateUtil, DateRange } from '../../utils/DateUtil';
+import { DateRange } from '../../utils/DateUtil';
 import { ErrorUtil } from '../../utils/ErrorUtil';
 import { HomeHero } from './HomeHero';
 import { SummaryCard } from './SummaryCard';
@@ -19,6 +19,8 @@ import { UnlockSheet } from '../../components/sheet/UnlockSheet';
 import { ConfirmSheet } from '../../components/base/ConfirmSheet';
 import { ErrorRetry } from '../../components/base/ErrorRetry';
 import { DeleteService } from '../../service/DeleteService';
+import { BudgetPeriod, BudgetPeriodType } from '../../service/BudgetPeriod';
+import { SettingsService } from '../../service/SettingsService';
 import { SnackBarService } from '../../service/SnackBarService';
 import { SnackBarOptions } from '../../service/SnackBarService';
 
@@ -43,7 +45,8 @@ export struct HomePage {
   @Local days: DayGroup[] = [];
   @Local selectedBookId: string = '';
   @Local selectedMemberId: string = '';
-  @Local monthKey: string = DateUtil.monthKey(new Date());
+  @Local periodType: BudgetPeriodType = BudgetPeriodType.MONTH;
+  @Local periodKey: string = BudgetPeriod.current(BudgetPeriodType.MONTH, new Date(), SettingsService.weekStart());
   @Local spentCents: number = 0;
   @Local budgetCents: number = 0;
   @Local hasBudget: boolean = false;
@@ -76,6 +79,11 @@ export struct HomePage {
     this.reload();
   }
 
+  @Monitor('ui.budgetVersion')
+  onBudgetChanged(): void {
+    this.reload();
+  }
+
   private async reload(): Promise<void> {
     this.errorText = '';
     try {
@@ -96,7 +104,7 @@ export struct HomePage {
         this.selectedBookId = '';
       }
 
-      const budgets: Budget[] = await BudgetDao.list(this.monthKey);
+      const budgets: Budget[] = await BudgetDao.list(this.periodType);
       const listBookIds: string[] = this.selectedBookId === ''
         ? activeBooks.map((book: Book): string => book.id)
         : [this.selectedBookId];
@@ -107,7 +115,7 @@ export struct HomePage {
       if (this.selectedMemberId !== '') {
         filter.memberIds = [this.selectedMemberId];
       }
-      const range: DateRange = DateUtil.rangeOfMonth(this.monthKey);
+      const range: DateRange = BudgetPeriod.range(this.periodType, this.periodKey, SettingsService.weekStart());
       filter.startMs = range.startMs;
       filter.endMs = range.endMs;
       const txns: Txn[] = listBookIds.length === 0 ? [] : await TxnDao.listRange(filter);
@@ -145,18 +153,8 @@ export struct HomePage {
     this.hasBudget = found;
     this.budgetCents = found ? total : 0;
     const remaining: number = this.budgetCents - this.spentCents;
-    const parts: string[] = this.monthKey.split('-');
-    const year: number = Number(parts[0]);
-    const month: number = Number(parts[1]);
-    const totalDays: number = DateUtil.daysInMonth(year, month);
-    const now: Date = new Date();
-    let daysLeft: number = totalDays;
-    if (now.getFullYear() === year && now.getMonth() + 1 === month) {
-      daysLeft = totalDays - now.getDate() + 1;
-    }
-    if (daysLeft < 1) {
-      daysLeft = 1;
-    }
+    const weekStart: number = SettingsService.weekStart();
+    const daysLeft: number = BudgetPeriod.daysLeft(this.periodType, this.periodKey, weekStart, new Date());
     const available: number = remaining > 0 ? remaining : 0;
     this.perDayCents = Math.floor(available / daysLeft);
   }
@@ -294,9 +292,36 @@ export struct HomePage {
     this.selectBook(bookId);
   }
 
-  private changeMonth(delta: number): void {
+  private changePeriod(delta: number): void {
     this.animateContentSwitch(delta, () => {
-      this.monthKey = DateUtil.addMonths(this.monthKey, delta);
+      this.periodKey = BudgetPeriod.shift(this.periodType, this.periodKey, delta, SettingsService.weekStart());
+      this.reload();
+    });
+  }
+
+  private periodIndex(): number {
+    return BudgetPeriod.indexOf(this.periodType);
+  }
+
+  private periodLabel(): string {
+    return BudgetPeriod.label(this.periodType, this.periodKey);
+  }
+
+  private periodNoun(): string {
+    return BudgetPeriod.noun(this.periodType);
+  }
+
+  private switchPeriod(index: number): void {
+    const next: BudgetPeriodType = BudgetPeriod.at(index);
+    if (next === this.periodType) {
+      return;
+    }
+    const anchor: Date = BudgetPeriod.anchor(
+      this.periodType, this.periodKey, SettingsService.weekStart(), new Date()
+    );
+    this.animateContentSwitch(index - this.periodIndex(), () => {
+      this.periodType = next;
+      this.periodKey = BudgetPeriod.current(next, anchor, SettingsService.weekStart());
       this.reload();
     });
   }
@@ -355,6 +380,56 @@ export struct HomePage {
     this.stack.pushPathByName('AddTxn', param, (popInfo: PopInfo) => {
       this.reload();
     });
+  }
+
+  private openEdit(txn: Txn): void {
+    if (this.isLockedBook(txn.bookId)) {
+      SnackBarService.show(HomePage.toast('请先解锁该账本'));
+      return;
+    }
+    const param: AddTxnParam = new AddTxnParam();
+    param.bookId = txn.bookId;
+    param.dayKey = txn.dayKey;
+    param.txnId = txn.id;
+    this.stack.pushPathByName('AddTxn', param, (popInfo: PopInfo) => {
+      this.reload();
+    });
+  }
+
+  @Builder
+  txnActions(txn: Txn) {
+    Row({ space: Space.x2 }) {
+      Stack() {
+        Image($r('app.media.ic_edit'))
+          .width(19)
+          .height(19)
+          .fillColor($r('app.color.brand_ink'))
+      }
+      .width(46)
+      .height(46)
+      .borderRadius(Radius.icon)
+      .backgroundColor($r('app.color.brand_wash'))
+      .onClick(() => {
+        this.openEdit(txn);
+      })
+
+      Stack() {
+        Image($r('app.media.ic_trash'))
+          .width(19)
+          .height(19)
+          .fillColor($r('app.color.expense'))
+      }
+      .width(46)
+      .height(46)
+      .borderRadius(Radius.icon)
+      .backgroundColor($r('app.color.surface_2'))
+      .onClick(() => {
+        this.requestDelete(txn);
+      })
+    }
+    .height('100%')
+    .padding({ left: Space.x2, right: Space.x1 })
+    .alignItems(VerticalAlign.Center)
   }
 
   @Builder
@@ -446,7 +521,8 @@ export struct HomePage {
             ListItem() {
               Column() {
                 HomeHero({
-                  monthLabel: DateUtil.formatMonthCn(this.monthKey),
+                  periodLabel: this.periodLabel(),
+                  periodIndex: this.periodIndex(),
                   books: this.books,
                   selectedBookId: this.selectedBookId,
                   lockedBookIds: this.lockedBookIds(),
@@ -458,15 +534,19 @@ export struct HomePage {
                       this.reload();
                     });
                   },
-                  onPrevMonth: () => {
-                    this.changeMonth(-1);
+                  onSelectPeriod: (index: number) => {
+                    this.switchPeriod(index);
                   },
-                  onNextMonth: () => {
-                    this.changeMonth(1);
+                  onPrevPeriod: () => {
+                    this.changePeriod(-1);
+                  },
+                  onNextPeriod: () => {
+                    this.changePeriod(1);
                   }
                 })
                 SummaryCard({
                   spentCents: this.spentCents,
+                  spentLabel: this.periodNoun().concat('支出'),
                   budgetCents: this.budgetCents,
                   hasBudget: this.hasBudget,
                   perDayCents: this.perDayCents,
@@ -522,7 +602,7 @@ export struct HomePage {
               ListItem() {
                 EmptyState({
                   icon: $r('app.media.ic_cat_other'),
-                  title: '本月还没有记账',
+                  title: this.periodNoun().concat('还没有记账'),
                   description: '点右下角 + 记一笔'
                 })
               }
@@ -539,12 +619,13 @@ export struct HomePage {
                         member: this.memberOf(txn.memberId),
                         locked: this.isLockedBook(txn.bookId),
                         isFirst: index === 0,
-                        isLast: index === this.visibleTxns(group).length - 1 && this.hiddenCount(group) <= 0,
-                        onLongPress: () => {
-                          this.requestDelete(txn);
-                        }
+                        isLast: index === this.visibleTxns(group).length - 1 && this.hiddenCount(group) <= 0
                       })
                     }
+                    .swipeAction({
+                      end: this.txnActions(txn),
+                      edgeEffect: SwipeEdgeEffect.Spring
+                    })
                   }, (txn: Txn) => txn.id)
                   if (this.hiddenCount(group) > 0) {
                     ListItem() {

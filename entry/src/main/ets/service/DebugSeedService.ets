@@ -45,14 +45,24 @@ export class DebugSeedService {
   }
 
   private static async insertBudgets(store: relationalStore.RdbStore): Promise<void> {
-    const period: string = DebugSeedService.monthKey(new Date());
+    await DebugSeedService.insertBudget(store, 'demo_budget_daily_week', DebugSeedService.demoBookDaily, 'week', 70000);
+    await DebugSeedService.insertBudget(store, 'demo_budget_daily_month', DebugSeedService.demoBookDaily, 'month',
+      320000);
+    await DebugSeedService.insertBudget(store, 'demo_budget_daily_year', DebugSeedService.demoBookDaily, 'year',
+      3840000);
+    await DebugSeedService.insertBudget(store, 'demo_budget_travel_week', DebugSeedService.demoBookTravel, 'week',
+      180000);
+    await DebugSeedService.insertBudget(store, 'demo_budget_travel_month', DebugSeedService.demoBookTravel, 'month',
+      800000);
+    await DebugSeedService.insertBudget(store, 'demo_budget_travel_year', DebugSeedService.demoBookTravel, 'year',
+      9600000);
+  }
+
+  private static async insertBudget(store: relationalStore.RdbStore, id: string, bookId: string, period: string,
+    cents: number): Promise<void> {
     await store.executeSql(
       'INSERT OR REPLACE INTO budget (id, book_id, period, amount_cents, updated_at) VALUES (?, ?, ?, ?, ?)',
-      ['demo_budget_daily', DebugSeedService.demoBookDaily, period, 300000, Date.now()]
-    );
-    await store.executeSql(
-      'INSERT OR REPLACE INTO budget (id, book_id, period, amount_cents, updated_at) VALUES (?, ?, ?, ?, ?)',
-      ['demo_budget_travel', DebugSeedService.demoBookTravel, period, 800000, Date.now()]
+      [id, bookId, period, cents, Date.now()]
     );
   }
 
@@ -139,8 +149,4 @@ export class DebugSeedService {
     return date.getFullYear().toString().concat('-').concat(m).concat('-').concat(d);
   }
 
-  private static monthKey(date: Date): string {
-    const m: string = (date.getMonth() + 1).toString().padStart(2, '0');
-    return date.getFullYear().toString().concat('-').concat(m);
-  }
 }
