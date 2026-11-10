@@ -1,6 +1,7 @@
-import { AppFont, Radius, Space } from '../../theme/Theme';
+﻿import { AppFont, Radius, Space } from '../../theme/Theme';
 import { IconSize } from '../../theme/IconSize';
 import { Book, Category, Member, Txn } from '../../models/Entities';
+import { NavResult } from '../../models/NavParams';
 import { TxnDao } from '../../data/db/TxnDao';
 import { BookDao } from '../../data/db/BookDao';
 import { CategoryDao } from '../../data/db/CategoryDao';
@@ -217,7 +218,7 @@ export struct SearchPage {
             .backgroundColor($r('app.color.surface'))
             .border({ width: 1, color: $r('app.color.line') })
             .onClick(() => {
-              this.stack.pop();
+              this.stack.pop(new NavResult());
             })
 
             Row({ space: 7 }) {

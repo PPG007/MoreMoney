@@ -1,7 +1,8 @@
-import { AppFont, Radius, Space } from '../../theme/Theme';
+﻿import { AppFont, Radius, Space } from '../../theme/Theme';
 import { IconSize } from '../../theme/IconSize';
 import { memberColorOf } from '../../theme/Palette';
 import { Member } from '../../models/Entities';
+import { NavResult } from '../../models/NavParams';
 import { MemberDao } from '../../data/db/MemberDao';
 import { TxnDao } from '../../data/db/TxnDao';
 import { ErrorUtil } from '../../utils/ErrorUtil';
@@ -235,7 +236,7 @@ export struct MemberManagePage {
       .backgroundColor($r('app.color.surface'))
       .border({ width: 1, color: $r('app.color.line') })
       .onClick(() => {
-        this.stack.pop();
+        this.stack.pop(new NavResult());
       })
 
       Text('成员管理')

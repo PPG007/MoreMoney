@@ -137,7 +137,7 @@ export struct BookCard {
         }
 
         if (this.locked) {
-          Text('••••••')
+          Text('******')
             .fontSize(AppFont.caption)
             .fontWeight(AppFont.semibold)
             .fontColor($r('app.color.ink_2'))

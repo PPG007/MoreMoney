@@ -33,7 +33,7 @@
 │   └── 私密账本（row）
 ├── 分组“通用”
 │   ├── 周起始日（右值：周一 / 周日）
-│   ├── 外观（右值：跟随系统，禁用）
+│   ├── 外观（右值：跟随系统 / 浅色 / 深色）
 │   └── 关于（右值：1.0.0）
 └── 版本信息 10/400 ink_3 居中
 ```
@@ -44,7 +44,7 @@
 - 设置卡：圆角 20、`surface` 底、行 padding `11 13`、行间 1vp `line`；行图标 31×31、圆角 10、`surface_2` 底、图标 16。
 - 备份状态卡：padding 13、圆角 20、渐变 `brand_wash → surface`；显示“上次备份 11月9日 15:30”或“从未备份”；点击进入数据与备份页。
 - “周起始日”：点击弹 `TextPickerDialog` 或自定义弹层，选项“周一 / 周日”，写入 `SettingsService.weekStart`，影响日历与趋势周聚合。
-- “外观”：固定“跟随系统”，不提供切换；点击提示“暂不支持手动切换”（Toast），行保持可读。
+- “外观”：点击弹底部弹层，选项“跟随系统 / 浅色 / 深色”；选择后写入 `SettingsService.appearance` 并调用 `ApplicationContext.setColorMode` 立即生效，重启后保持。
 - “关于”：点击打开 `AlertDialog` 或底部弹层，展示应用名、版本（从 `bundleManager` 读取）、隐私说明链接文本（本地文案，不外链）。
 - “私密账本”：打开 `BookManagePage` 并传 `new BookManageParam(true)`（只显示私密账本，T08 定义）；无账本时显示空态与“去创建”跳转。
 - 不新增“应用锁”“隐藏金额”设置项（设计已移除）。
@@ -94,5 +94,5 @@ NavDestination
 
 - 设置项只走 `SettingsService`，不要在页面直接操作 Preferences。
 - 版本号从 `bundleManager.getBundleInfoForSelf()` 读取，不硬编码。
-- 外观固定跟随系统，不实现深色手动切换（设计未要求）。
+- 外观支持跟随系统 / 浅色 / 深色三种模式，选择后持久化并在启动时恢复。
 - 数据页的“大小”不是关键指标，读不到时不要报错。

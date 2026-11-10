@@ -52,6 +52,9 @@ export struct HomePage {
   @Local refreshing: boolean = false;
   @Local errorText: string = '';
   @Local expandedDayKey: string = '';
+  @Local switchOffsetX: number = 0;
+  @Local switchOpacity: number = 1;
+  private switching: boolean = false;
   @Local showUnlock: boolean = false;
   @Local unlockBookId: string = '';
   @Local unlockBookName: string = '';
@@ -65,6 +68,11 @@ export struct HomePage {
 
   @Monitor('ui.unlockVersion')
   onUnlockChanged(): void {
+    this.reload();
+  }
+
+  @Monitor('ui.txnVersion')
+  onTxnChanged(): void {
     this.reload();
   }
 
@@ -224,9 +232,55 @@ export struct HomePage {
     return group.txns.length - MAX_ROWS_PER_DAY;
   }
 
+  private bookDirection(bookId: string): number {
+    const oldIndex: number = this.selectedBookId === ''
+      ? -1
+      : this.books.findIndex((book: Book): boolean => book.id === this.selectedBookId);
+    const newIndex: number = bookId === ''
+      ? -1
+      : this.books.findIndex((book: Book): boolean => book.id === bookId);
+    return newIndex >= oldIndex ? 1 : -1;
+  }
+
+  private animateContentSwitch(direction: number, apply: () => void): void {
+    if (this.switching) {
+      return;
+    }
+    this.switching = true;
+    const exitOffset: number = direction >= 0 ? -36 : 36;
+    const enterOffset: number = direction >= 0 ? 36 : -36;
+    this.getUIContext().animateTo({
+      duration: 120,
+      curve: Curve.EaseIn,
+      onFinish: () => {
+        apply();
+        this.switchOffsetX = enterOffset;
+        this.switchOpacity = 0;
+        this.getUIContext().animateTo({
+          duration: 200,
+          curve: Curve.EaseOut,
+          onFinish: () => {
+            this.switching = false;
+          }
+        }, () => {
+          this.switchOffsetX = 0;
+          this.switchOpacity = 1;
+        });
+      }
+    }, () => {
+      this.switchOffsetX = exitOffset;
+      this.switchOpacity = 0;
+    });
+  }
+
   private selectBook(bookId: string): void {
-    this.selectedBookId = bookId;
-    this.reload();
+    if (bookId === this.selectedBookId) {
+      return;
+    }
+    this.animateContentSwitch(this.bookDirection(bookId), () => {
+      this.selectedBookId = bookId;
+      this.reload();
+    });
   }
 
   private requestSelectBook(bookId: string): void {
@@ -241,8 +295,10 @@ export struct HomePage {
   }
 
   private changeMonth(delta: number): void {
-    this.monthKey = DateUtil.addMonths(this.monthKey, delta);
-    this.reload();
+    this.animateContentSwitch(delta, () => {
+      this.monthKey = DateUtil.addMonths(this.monthKey, delta);
+      this.reload();
+    });
   }
 
   private selectMember(memberId: string): void {
@@ -470,6 +526,8 @@ export struct HomePage {
                   description: '点右下角 + 记一笔'
                 })
               }
+              .translate({ x: this.switchOffsetX })
+              .opacity(this.switchOpacity)
             } else {
               ForEach(this.days, (group: DayGroup) => {
                 ListItemGroup({ header: this.dayHeader(group) }) {
@@ -507,9 +565,13 @@ export struct HomePage {
                     }
                   }
                 }
-                .width('100%')
                 .margin({ left: Space.page, right: Space.page, bottom: Space.x3 })
-              }, (group: DayGroup) => group.dayKey)
+                .translate({ x: this.switchOffsetX })
+                .opacity(this.switchOpacity)
+              }, (group: DayGroup) => group.dayKey.concat('#')
+                .concat(group.txns.length.toString())
+                .concat('#')
+                .concat(group.cents.toString()))
             }
 
             ListItem() {
@@ -547,7 +609,7 @@ export struct HomePage {
           offsetY: 16,
           color: this.ui.isDark ? 'rgba(165,180,252,0.38)' : 'rgba(67,56,202,0.38)'
         })
-        .margin({ right: Space.page, bottom: this.ui.bottomInset + 76 })
+        .margin({ right: Space.page, bottom: 18 })
         .onClick(() => {
           this.openAdd();
         })

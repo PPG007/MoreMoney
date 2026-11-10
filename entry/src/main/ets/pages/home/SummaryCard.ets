@@ -1,6 +1,7 @@
 import { AppFont, Radius, Shadow, Space } from '../../theme/Theme';
 import { LineColors } from '../../theme/Palette';
 import { MoneyText, MoneyTone } from '../../components/base/MoneyText';
+import { formatCents } from '../../utils/MoneyUtil';
 import { GlobalUiStore } from '../../state/GlobalUiStore';
 import { UiStore } from '../../state/UiStore';
 
@@ -10,15 +11,33 @@ struct SummaryStat {
   @Param tone: MoneyTone = MoneyTone.Ink;
   @Param cents: number = 0;
   @Param showValue: boolean = true;
+  @Local ui: GlobalUiStore = UiStore.instance();
+  @Local showTip: boolean = false;
 
   build() {
     Column({ space: 3 }) {
       if (this.showValue) {
-        MoneyText({
-          cents: this.cents,
-          fontSize: AppFont.stat,
-          weight: AppFont.bold,
-          tone: this.tone
+        Column() {
+          MoneyText({
+            cents: this.cents,
+            fontSize: AppFont.stat,
+            weight: AppFont.bold,
+            tone: this.tone
+          })
+        }
+        .width('100%')
+        .alignItems(HorizontalAlign.Start)
+        .bindPopup(this.showTip, {
+          message: formatCents(this.cents),
+          placement: Placement.Top,
+          onStateChange: (event: PopupStateChangeParam) => {
+            this.showTip = event.isVisible;
+          }
+        })
+        .onClick(() => {
+          if (!this.ui.hideAmount) {
+            this.showTip = !this.showTip;
+          }
         })
       } else {
         Text('—')
@@ -44,6 +63,7 @@ export struct SummaryCard {
   @Event onGoBudget: () => void = () => {
   };
   @Local ui: GlobalUiStore = UiStore.instance();
+  @Local showSpentTip: boolean = false;
 
   private percent(): number {
     if (!this.hasBudget || this.budgetCents <= 0) {
@@ -67,11 +87,27 @@ export struct SummaryCard {
         Text('本月支出')
           .fontSize(AppFont.caption)
           .fontColor($r('app.color.ink_3'))
-        MoneyText({
-          cents: -this.spentCents,
-          fontSize: AppFont.heroAmount,
-          weight: AppFont.bold,
-          tone: MoneyTone.Expense
+        Column() {
+          MoneyText({
+            cents: this.spentCents,
+            fontSize: AppFont.heroAmount,
+            weight: AppFont.bold,
+            tone: MoneyTone.Expense
+          })
+        }
+        .width('100%')
+        .alignItems(HorizontalAlign.Start)
+        .bindPopup(this.showSpentTip, {
+          message: formatCents(this.spentCents),
+          placement: Placement.Top,
+          onStateChange: (event: PopupStateChangeParam) => {
+            this.showSpentTip = event.isVisible;
+          }
+        })
+        .onClick(() => {
+          if (!this.ui.hideAmount) {
+            this.showSpentTip = !this.showSpentTip;
+          }
         })
       }
       .alignItems(HorizontalAlign.Start)

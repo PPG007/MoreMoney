@@ -70,7 +70,7 @@ export struct BudgetBookRow {
       .alignItems(HorizontalAlign.Start)
 
       if (this.ui.hideAmount) {
-        Text('••')
+        Text('**')
           .fontSize(AppFont.body)
           .fontWeight(AppFont.bold)
           .fontColor($r('app.color.ink'))

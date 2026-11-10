@@ -1,4 +1,4 @@
-import { AppFont, Radius, Space } from '../../theme/Theme';
+import { AppFont, Radius } from '../../theme/Theme';
 import { MoneyText, MoneyTone } from '../../components/base/MoneyText';
 
 @ComponentV2
@@ -47,6 +47,5 @@ export struct BudgetSummary {
     .borderRadius(Radius.card)
     .backgroundColor($r('app.color.surface'))
     .border({ width: 1, color: $r('app.color.line') })
-    .margin({ left: Space.page, right: Space.page })
   }
 }

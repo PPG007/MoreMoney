@@ -1,6 +1,7 @@
-import { AppFont, Radius, Space } from '../../theme/Theme';
+﻿import { AppFont, Radius, Space } from '../../theme/Theme';
 import { IconSize } from '../../theme/IconSize';
 import { Category, CategoryGroup } from '../../models/Entities';
+import { NavResult } from '../../models/NavParams';
 import { CategoryDao } from '../../data/db/CategoryDao';
 import { CategoryService } from '../../service/CategoryService';
 import { pinyinKey } from '../../utils/PinyinUtil';
@@ -246,7 +247,7 @@ export struct CategoryManagePage {
       .backgroundColor($r('app.color.surface'))
       .border({ width: 1, color: $r('app.color.line') })
       .onClick(() => {
-        this.stack.pop();
+        this.stack.pop(new NavResult());
       })
 
       Text('分类管理')

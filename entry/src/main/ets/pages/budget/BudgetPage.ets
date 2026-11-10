@@ -232,7 +232,6 @@ export struct BudgetPage {
               })
             }
             .width('100%')
-            .padding({ left: Space.page, right: Space.page })
             .borderRadius(Radius.cardLg)
             .backgroundColor($r('app.color.surface'))
             .border({ width: 1, color: $r('app.color.line') })
@@ -241,7 +240,7 @@ export struct BudgetPage {
               view: this.overview.mainBook,
               perDayCents: this.overview.perDayCents
             })
-            .margin({ left: Space.page, right: Space.page, top: Space.x1 })
+            .margin({ top: Space.x1 })
           }
 
           if (this.overview.unset.length > 0) {
@@ -257,7 +256,7 @@ export struct BudgetPage {
               }, (view: BudgetBookView) => view.bookId)
             }
             .width('100%')
-            .padding({ left: Space.page, right: Space.page, top: Space.x3 })
+            .padding({ top: Space.x3 })
           }
 
           if (this.overview.others.length > 0) {
@@ -273,16 +272,17 @@ export struct BudgetPage {
               }, (view: BudgetBookView) => view.bookId)
             }
             .width('100%')
-            .padding({ left: Space.page, right: Space.page, top: Space.x3 })
+            .padding({ top: Space.x3 })
           }
 
           Text('预算只统计已设置预算且已解锁的账本；未设置预算的账本不计入合计。')
             .fontSize(AppFont.caption)
             .fontColor($r('app.color.ink_3'))
             .width('100%')
-            .padding({ left: Space.page, right: Space.page, top: Space.x4, bottom: Space.x8 })
+            .padding({ top: Space.x4, bottom: Space.x8 })
         }
         .width('100%')
+        .padding({ left: Space.page, right: Space.page })
       }
       .layoutWeight(1)
       .scrollBar(BarState.Off)

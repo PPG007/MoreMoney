@@ -1,7 +1,7 @@
-import { AppFont, Radius, Space } from '../../theme/Theme';
+﻿import { AppFont, Radius, Space } from '../../theme/Theme';
 import { GlobalUiStore } from '../../state/GlobalUiStore';
 import { UiStore } from '../../state/UiStore';
-import { AddTxnParam } from '../../models/NavParams';
+import { AddTxnParam, NavResult } from '../../models/NavParams';
 import { Book, Category, Member, Txn } from '../../models/Entities';
 import { BookDao } from '../../data/db/BookDao';
 import { CategoryDao } from '../../data/db/CategoryDao';
@@ -310,7 +310,7 @@ export struct AddTxnPage {
     if (this.hasInput()) {
       this.confirmDiscard();
     } else {
-      this.stack.pop();
+      this.stack.pop(new NavResult());
     }
   }
 
@@ -327,7 +327,7 @@ export struct AddTxnPage {
         value: '放弃',
         fontColor: $r('app.color.expense'),
         action: () => {
-          this.stack.pop();
+          this.stack.pop(new NavResult());
         }
       }
     });
@@ -367,8 +367,9 @@ export struct AddTxnPage {
     try {
       await TxnDao.insert(txn);
       this.dirty = false;
+      this.ui.notifyTxnChanged();
       SnackBarService.show(AddTxnPage.successOptions(result.cents, txn.note));
-      this.stack.pop();
+      this.stack.pop(new NavResult());
     } catch (error) {
       SnackBarService.show(AddTxnPage.errorOptions('保存失败：'.concat(ErrorUtil.messageOf(error))));
     }
@@ -569,6 +570,8 @@ export struct AddTxnPage {
       .height('100%')
     }
     .hideTitleBar(true)
+    .mode(NavDestinationMode.DIALOG)
+    .systemTransition(NavigationSystemTransitionType.SLIDE_BOTTOM)
     .backgroundColor($r('app.color.bg'))
     .onBackPressed(() => {
       if (this.hasInput()) {

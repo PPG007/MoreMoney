@@ -21,6 +21,7 @@ export struct MoneyText {
   @Param signed: boolean = false;
   @Param locked: boolean = false;
   @Param forceVisible: boolean = false;
+  @Param maxLines: number = 1;
   @Local ui: GlobalUiStore = UiStore.instance();
 
   private visibleText(): string {
@@ -35,7 +36,7 @@ export struct MoneyText {
 
   private finalText(): string {
     if (this.locked || (this.ui.hideAmount && !this.forceVisible)) {
-      return this.showSymbol ? '¥••••' : '••••';
+      return this.showSymbol ? '¥****' : '****';
     }
     return this.visibleText();
   }
@@ -58,12 +59,16 @@ export struct MoneyText {
       Text(this.finalText())
         .fontSize(this.fontSize)
         .fontWeight(this.weight)
+        .maxLines(this.maxLines)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
         .fontFeature(AppFont.tnum)
     } else {
       Text(this.finalText())
         .fontSize(this.fontSize)
         .fontWeight(this.weight)
         .fontColor(this.colorOf())
+        .maxLines(this.maxLines)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
         .fontFeature(AppFont.tnum)
     }
   }

@@ -51,6 +51,15 @@ export class SettingsService {
     await SettingsService.setNumber('weekStart', value);
   }
 
+  static appearance(): number {
+    const value: number = SettingsService.getNumber('appearance', 0);
+    return value < 0 || value > 2 ? 0 : value;
+  }
+
+  static async setAppearance(value: number): Promise<void> {
+    await SettingsService.setNumber('appearance', value);
+  }
+
   static recentSearches(): string[] {
     const raw: string = SettingsService.getString('recentSearches', '');
     if (raw.length === 0) {

@@ -1,4 +1,4 @@
-import { bundleManager } from '@kit.AbilityKit';
+import { bundleManager, ConfigurationConstant } from '@kit.AbilityKit';
 import { AppFont, Radius, Shadow, Space } from '../../theme/Theme';
 import { GlobalUiStore } from '../../state/GlobalUiStore';
 import { UiStore } from '../../state/UiStore';
@@ -18,6 +18,8 @@ export struct SettingsPage {
   @Local version: string = '1.0.0';
   @Local weekStart: number = 1;
   @Local showWeekSheet: boolean = false;
+  @Local appearance: number = 0;
+  @Local showAppearanceSheet: boolean = false;
 
   aboutToAppear(): void {
     this.reload();
@@ -27,6 +29,7 @@ export struct SettingsPage {
     this.lastBackupAt = SettingsService.lastBackupAt();
     this.lastName = SettingsService.lastBackupName();
     this.weekStart = SettingsService.weekStart();
+    this.appearance = SettingsService.appearance();
     try {
       const info: bundleManager.BundleInfo = bundleManager.getBundleInfoForSelfSync(0);
       this.version = info.versionName;
@@ -60,6 +63,44 @@ export struct SettingsPage {
     this.showWeekSheet = false;
     await SettingsService.setWeekStart(value);
     SnackBarService.show(SettingsPage.toast(value === 1 ? '周起始日已设为周一' : '周起始日已设为周日'));
+  }
+
+  private appearanceLabel(): string {
+    if (this.appearance === 1) {
+      return '浅色';
+    }
+    if (this.appearance === 2) {
+      return '深色';
+    }
+    return '跟随系统';
+  }
+
+  private chooseAppearance(value: number): void {
+    const labels: string[] = ['跟随系统', '浅色', '深色'];
+    const label: string = labels[value];
+    this.appearance = value;
+    this.showAppearanceSheet = false;
+    SettingsService.setAppearance(value).catch(() => {
+    });
+    const context = this.getUIContext().getHostContext();
+    if (context !== undefined) {
+      let colorMode: ConfigurationConstant.ColorMode = ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET;
+      if (value === 1) {
+        colorMode = ConfigurationConstant.ColorMode.COLOR_MODE_LIGHT;
+      } else if (value === 2) {
+        colorMode = ConfigurationConstant.ColorMode.COLOR_MODE_DARK;
+      }
+      try {
+        context.getApplicationContext().setColorMode(colorMode);
+      } catch (error) {
+      }
+      if (value === 1) {
+        this.ui.isDark = false;
+      } else if (value === 2) {
+        this.ui.isDark = true;
+      }
+    }
+    SnackBarService.show(SettingsPage.toast('外观已设为'.concat(label)));
   }
 
   private showAbout(): void {
@@ -145,6 +186,99 @@ export struct SettingsPage {
           .backgroundColor($r('app.color.surface_2'))
           .onClick(() => {
             this.chooseWeekStart(7);
+          })
+        }
+        .width('100%')
+        .padding({ left: Space.x7, right: Space.x7, top: 22, bottom: Space.x8 + 10 })
+        .borderRadius({ topLeft: Radius.sheet, topRight: Radius.sheet })
+        .backgroundColor($r('app.color.surface'))
+        .shadow(Shadow.sheet(this.ui.isDark))
+      }
+      .width('100%')
+      .height('100%')
+    }
+  }
+
+  @Builder
+  appearanceSheet() {
+    if (this.showAppearanceSheet) {
+      Stack({ alignContent: Alignment.Bottom }) {
+        Row()
+          .width('100%')
+          .height('100%')
+          .backgroundColor($r('app.color.scrim'))
+          .onClick(() => {
+            this.showAppearanceSheet = false;
+          })
+        Column({ space: Space.x2 }) {
+          Text('外观')
+            .fontSize(AppFont.subTitle)
+            .fontWeight(AppFont.bold)
+            .fontColor($r('app.color.ink'))
+            .width('100%')
+            .padding({ bottom: 6 })
+          Row() {
+            Text('跟随系统')
+              .fontSize(AppFont.row)
+              .fontWeight(AppFont.medium)
+              .fontColor(this.appearance === 0 ? $r('app.color.brand_ink') : $r('app.color.ink'))
+              .layoutWeight(1)
+            if (this.appearance === 0) {
+              Image($r('app.media.ic_check'))
+                .width(16)
+                .height(16)
+                .fillColor($r('app.color.brand_ink'))
+            }
+          }
+          .width('100%')
+          .height(50)
+          .padding({ left: 13, right: 13 })
+          .borderRadius(Radius.input)
+          .backgroundColor($r('app.color.surface_2'))
+          .onClick(() => {
+            this.chooseAppearance(0);
+          })
+          Row() {
+            Text('浅色')
+              .fontSize(AppFont.row)
+              .fontWeight(AppFont.medium)
+              .fontColor(this.appearance === 1 ? $r('app.color.brand_ink') : $r('app.color.ink'))
+              .layoutWeight(1)
+            if (this.appearance === 1) {
+              Image($r('app.media.ic_check'))
+                .width(16)
+                .height(16)
+                .fillColor($r('app.color.brand_ink'))
+            }
+          }
+          .width('100%')
+          .height(50)
+          .padding({ left: 13, right: 13 })
+          .borderRadius(Radius.input)
+          .backgroundColor($r('app.color.surface_2'))
+          .onClick(() => {
+            this.chooseAppearance(1);
+          })
+          Row() {
+            Text('深色')
+              .fontSize(AppFont.row)
+              .fontWeight(AppFont.medium)
+              .fontColor(this.appearance === 2 ? $r('app.color.brand_ink') : $r('app.color.ink'))
+              .layoutWeight(1)
+            if (this.appearance === 2) {
+              Image($r('app.media.ic_check'))
+                .width(16)
+                .height(16)
+                .fillColor($r('app.color.brand_ink'))
+            }
+          }
+          .width('100%')
+          .height(50)
+          .padding({ left: 13, right: 13 })
+          .borderRadius(Radius.input)
+          .backgroundColor($r('app.color.surface_2'))
+          .onClick(() => {
+            this.chooseAppearance(2);
           })
         }
         .width('100%')
@@ -248,9 +382,9 @@ export struct SettingsPage {
               ListRow({
                 icon: $r('app.media.ic_eye'),
                 title: '外观',
-                trailingText: '跟随系统',
+                trailingText: this.appearanceLabel(),
                 onTap: () => {
-                  SnackBarService.show(SettingsPage.toast('暂不支持手动切换'));
+                  this.showAppearanceSheet = true;
                 }
               })
               Divider().color($r('app.color.line'))
@@ -285,6 +419,7 @@ export struct SettingsPage {
       .scrollBar(BarState.Off)
 
       this.weekSheet()
+      this.appearanceSheet()
     }
     .width('100%')
     .height('100%')

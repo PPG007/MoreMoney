@@ -7,3 +7,7 @@ export class AddTxnParam {
 export class BookManageParam {
   filterPrivate: boolean = false;
 }
+
+export class NavResult {
+  handled: boolean = true;
+}

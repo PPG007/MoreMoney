@@ -14,6 +14,11 @@ export class GlobalUiStore {
   @Trace bottomInset: number = 0;
   @Trace snackbar: SnackBarState = new SnackBarState();
   @Trace unlockVersion: number = 0;
+  @Trace txnVersion: number = 0;
+
+  notifyTxnChanged(): void {
+    this.txnVersion += 1;
+  }
 
   unlockedUntil: Record<string, number> = {};
 

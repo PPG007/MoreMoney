@@ -1,8 +1,8 @@
-import { AppFont, Radius, Space } from '../../theme/Theme';
+﻿import { AppFont, Radius, Space } from '../../theme/Theme';
 import { IconSize } from '../../theme/IconSize';
 import { SeedColors } from '../../theme/Palette';
 import { Book, Budget, TxnFilter } from '../../models/Entities';
-import { BookManageParam } from '../../models/NavParams';
+import { BookManageParam, NavResult } from '../../models/NavParams';
 import { BookDao } from '../../data/db/BookDao';
 import { BudgetDao } from '../../data/db/BudgetDao';
 import { TxnDao } from '../../data/db/TxnDao';
@@ -464,7 +464,7 @@ export struct BookManagePage {
       .backgroundColor($r('app.color.surface'))
       .border({ width: 1, color: $r('app.color.line') })
       .onClick(() => {
-        this.stack.pop();
+        this.stack.pop(new NavResult());
       })
 
       Text('账本管理')

@@ -1,9 +1,10 @@
-import { picker } from '@kit.CoreFileKit';
+﻿import { picker } from '@kit.CoreFileKit';
 import { fileIo } from '@kit.CoreFileKit';
 import { AppFont, Radius, Shadow, Space } from '../../theme/Theme';
 import { GlobalUiStore } from '../../state/GlobalUiStore';
 import { UiStore } from '../../state/UiStore';
 import { Book, Member, TxnFilter } from '../../models/Entities';
+import { NavResult } from '../../models/NavParams';
 import { BookDao } from '../../data/db/BookDao';
 import { MemberDao } from '../../data/db/MemberDao';
 import { TxnDao } from '../../data/db/TxnDao';
@@ -320,7 +321,7 @@ export struct DataBackupPage {
           PageHeader({
             title: '数据与备份',
             onBack: () => {
-              this.stack.pop();
+              this.stack.pop(new NavResult());
             },
             trailing: this.headerTrailing
           })
