@@ -1,0 +1,33 @@
+# 仓库内统一以 LF 存储，自动识别文本/二进制
+* text=auto
+
+# Shell 脚本与 Gradle wrapper 检出时保持 LF，
+# 否则 Windows（core.autocrlf=true）下 Git Bash 执行 ./gradlew 会因 CRLF 失败
+gradlew text eol=lf
+*.sh    text eol=lf
+
+# Windows 批处理保持 CRLF
+*.bat   text eol=crlf
+
+# 源码与配置统一 LF，避免跨平台无意义 diff
+*.kt         text eol=lf
+*.kts        text eol=lf
+*.md         text eol=lf
+*.json       text eol=lf
+*.xml        text eol=lf
+*.toml       text eol=lf
+*.properties text eol=lf
+*.pro        text eol=lf
+*.yml        text eol=lf
+*.yaml       text eol=lf
+
+# 二进制资源
+*.png    binary
+*.jpg    binary
+*.jpeg   binary
+*.webp   binary
+*.jar    binary
+*.apk    binary
+*.aab    binary
+*.jks    binary
+*.keystore binary
