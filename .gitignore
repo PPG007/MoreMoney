@@ -1,0 +1,21 @@
+*.iml
+.gradle/
+.kotlin/
+build/
+**/build/
+/captures
+.externalNativeBuild/
+.cxx/
+local.properties
+# 发布签名材料不入库
+keystore.properties
+*.jks
+*.keystore
+.DS_Store
+.idea/
+*.hprof
+*.iml
+*.log
+/app/release/
+/app/debug/
+!app/schemas/

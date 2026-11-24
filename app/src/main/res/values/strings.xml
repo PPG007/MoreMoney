@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">来财</string>
+
+    <string name="tab_ledger">账本</string>
+    <string name="tab_budget">预算</string>
+    <string name="tab_charts">图表</string>
+    <string name="tab_settings">设置</string>
+
+    <string name="placeholder_badge">主题与排版已就绪</string>
+    <string name="placeholder_sample_amount">本月支出示例</string>
+    <string name="placeholder_sample_value">¥1,286.40</string>
+    <string name="placeholder_ready">页面迁移进行中；此占位页会在对应任务完成后替换为真实内容。</string>
+
+    <string name="color_expense">支出</string>
+    <string name="color_good">预算健康</string>
+    <string name="color_warn">提醒</string>
+
+    <string name="action_back">返回</string>
+    <string name="action_close">关闭</string>
+    <string name="action_save">保存</string>
+    <string name="action_cancel">取消</string>
+    <string name="action_delete">删除</string>
+    <string name="action_edit">编辑</string>
+    <string name="action_retry">重试</string>
+    <string name="action_undo">撤销</string>
+    <string name="action_confirm">确定</string>
+    <string name="action_add">新建</string>
+
+    <string name="cd_hide_amount">隐藏金额</string>
+    <string name="cd_show_amount">显示金额</string>
+    <string name="cd_search">搜索</string>
+    <string name="cd_add_txn">记一笔</string>
+</resources>

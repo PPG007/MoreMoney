@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.MoreMoney.Base" parent="@android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/start_window_background</item>
+        <item name="android:statusBarColor">@color/system_transparent</item>
+        <item name="android:navigationBarColor">@color/system_transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowActionModeOverlay">true</item>
+    </style>
+
+    <style name="Theme.MoreMoney" parent="Theme.MoreMoney.Base" />
+</resources>

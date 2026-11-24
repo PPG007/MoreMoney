@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="start_window_background">#FAF8F7</color>
+    <color name="start_window_icon_background">#4338CA</color>
+    <color name="system_transparent">#00000000</color>
+</resources>
