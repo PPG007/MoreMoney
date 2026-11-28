@@ -71,7 +71,8 @@ app/src/test/kotlin/...           # JVM 纯逻辑测试
 app/src/androidTest/kotlin/...    # Room DAO + Compose UI 测试
 app/src/debug/kotlin/...          # 演示数据、组件 Gallery（不进正式包）
 app/schemas/                      # Room 导出的 schema JSON，必须入库
-tools/svg2vector.py               # 历史 SVG → Android VectorDrawable
+tools/svg2vector.mjs              # 历史 SVG → Android VectorDrawable
+tools/material-icons2vector.mjs   # Material Icons Outlined → Android VectorDrawable
 ```
 
 ### 1.2 命名约定
@@ -247,7 +248,7 @@ adb shell am start -n com.github.ppg007.moremoney/.MainActivity
 | T01.1 | 对照 `MoreMoney/docs/tasks/T01-theme-tokens.md` §3.1 审计 `Color.kt`；补缺失 token；统一命名 | 浅/深 key 一一对应 |
 | T01.2 | 补专用字号：`amountInput=26sp`、`ringCenter=24sp`、`stat=16sp` 等；新增 `MoreMoneyTextStyles`；金额统一 `tabularNumbers()` | 首页 42sp、记一笔 26sp、环形图 24sp 可引用 |
 | T01.3 | 新增 `Palette.kt`：`ChartColors`（5 槽 + other）、`SeedColors`、`withAlpha()`；取值来自设计规范与历史配色 | 单测/预览验证 alpha 转换 |
-| T01.4 | `tools/svg2vector.py`：把 43 个 v1 需要的 `ic_*.svg` 转成 `res/drawable/*.xml`；处理多 path、`fill-rule=evenodd` | 43 个 drawable 全部生成，构建通过 |
+| T01.4 | `tools/svg2vector.mjs`：把 43 个 v1 需要的 `ic_*.svg` 转成 `res/drawable/*.xml`；处理多 path、`fill-rule=evenodd`。分类补充图标用 `tools/material-icons2vector.mjs`（Google Material Icons Outlined，Apache 2.0） | 所有 drawable 生成，构建通过；内置分类图标互不相同 |
 | T01.5 | 自适应图标 + 启动窗口：复用历史 `background.png` / `foreground.png`；`values-v31` 配置 splash | 模拟器冷启动背景色正确 |
 | T01.6 | 审计 + 截图：`grep` 确认组件无十六进制颜色；浅/深各截首页与 Tab 栏 | Lint 无硬编码颜色 error |
 
@@ -328,7 +329,7 @@ SideEffect {
 | T03.2 | 6 个 Entity：`BookEntity`、`CategoryGroupEntity`、`CategoryEntity`、`TxnEntity`、`BudgetEntity`、`AppMetaEntity`；所有列名用 `@ColumnInfo` 显式声明；无 `MemberEntity` | `PRAGMA table_info` 与 `2.json` 一致 |
 | T03.3 | `MoreMoneyDatabase`（version=3，`exportSchema=true`）；`MIGRATION_1_2` 删除成员表/列并重建 `txn`；`MIGRATION_2_3` 把按月的 `budget` 表重建为每账本一条（`cycle` + 金额）；部分唯一索引 `idx_book_default` 用 `RoomDatabase.Callback.onCreate/onOpen` 执行 SQL | `PRAGMA index_list(book)` 含 `idx_book_default` |
 | T03.4 | 6 个 DAO：Book/Category/Txn/Budget/AppMeta/Stats；列表查询返回 `Flow`，写操作 `suspend`；动态筛选用 `@RawQuery` | DAO 方法覆盖页面与统计需求 |
-| T03.5 | 幂等种子数据：固定 ID、名称、颜色、拼音；3 个普通账本；18 个内置分类；`app_meta.seed_version=2`（v1 升级时按旧默认名称原地改名并归档旧“其他”） | 连续启动 3 次不重复 |
+| T03.5 | 幂等种子数据：固定 ID、名称、颜色、拼音、图标；3 个普通账本；18 个内置分类；`app_meta.seed_version=3`（v1 升级时按旧默认名称原地改名并归档旧“其他”，v2 升级时把默认图标换成各自独立图标） | 连续启动 3 次不重复；18 个内置分类图标互不相同 |
 | T03.6 | `MoreMoneyApp` + `AppContainer`：持有数据库、Repository、SettingsService；Manifest 注册 | 冷启动可拿到单例 |
 | T03.7 | Instrumentation DAO 测试：CRUD、软删/恢复、默认账本唯一、dayKey 边界、预算 upsert、种子幂等；断言 `book` 表没有 `is_private` / `pwd_hash` / `pwd_salt` / `pwd_iter` | `connectedDebugAndroidTest` 全绿 |
 | T03.8 | 调试演示数据 `DebugSeedService` 放 `src/debug`：4 账本、30 笔本月流水、2 个预算 | 仅 debug 包可见 |
@@ -397,20 +398,20 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_book_default ON book(is_default) WHERE is_
 |---|---|---|---|---|---|---:|
 | `cat_food` | `group_food` | 饮食 | `ic_cat_food` | `#EB6834` | `yinshi` | 0 |
 | `cat_water` | `group_home` | 电费 | `ic_cat_power` | `#008300` | `dianfei` | 0 |
-| `cat_shopping` | `group_home` | 日用 | `ic_cat_shopping` | `#E87BA4` | `riyong` | 1 |
+| `cat_shopping` | `group_home` | 日用 | `ic_cat_daily` | `#E87BA4` | `riyong` | 1 |
 | `cat_transport` | `group_travel` | 交通 | `ic_cat_transport` | `#2A78D6` | `jiaotong` | 0 |
-| `cat_social` | `group_leisure` | 社交 | `ic_cat_entertain` | `#EDA100` | `shejiao` | 0 |
+| `cat_social` | `group_leisure` | 社交 | `ic_cat_social` | `#EDA100` | `shejiao` | 0 |
 | `cat_home` | `group_home` | 住房物业 | `ic_cat_home` | `#1BAF7A` | `zhufangwuye` | 2 |
-| `cat_parking` | `group_travel` | 停车费 | `ic_cat_transport` | `#2A78D6` | `tingchefei` | 1 |
-| `cat_carwash` | `group_travel` | 洗车 | `ic_cat_water` | `#008300` | `xiche` | 2 |
-| `cat_gift` | `group_shop` | 礼物 | `ic_cat_shopping` | `#E87BA4` | `liwu` | 0 |
+| `cat_parking` | `group_travel` | 停车费 | `ic_cat_parking` | `#2A78D6` | `tingchefei` | 1 |
+| `cat_carwash` | `group_travel` | 洗车 | `ic_cat_carwash` | `#008300` | `xiche` | 2 |
+| `cat_gift` | `group_shop` | 礼物 | `ic_cat_gift` | `#E87BA4` | `liwu` | 0 |
 | `cat_phone` | `group_other` | 通信 | `ic_cat_phone` | `#B8AAB1` | `tongxin` | 0 |
-| `cat_work` | `group_other` | 工作 | `ic_cat_repair` | `#6250D6` | `gongzuo` | 1 |
-| `cat_clothing` | `group_shop` | 服饰 | `ic_cat_shopping` | `#E87BA4` | `fushi` | 1 |
+| `cat_work` | `group_other` | 工作 | `ic_cat_work` | `#6250D6` | `gongzuo` | 1 |
+| `cat_clothing` | `group_shop` | 服饰 | `ic_cat_clothing` | `#E87BA4` | `fushi` | 1 |
 | `cat_entertain` | `group_leisure` | 娱乐 | `ic_cat_entertain` | `#EDA100` | `yule` | 1 |
-| `cat_beauty` | `group_other` | 美容 | `ic_cat_other` | `#E87BA4` | `meirong` | 2 |
+| `cat_beauty` | `group_other` | 美容 | `ic_cat_beauty` | `#E87BA4` | `meirong` | 2 |
 | `cat_medical` | `group_other` | 医疗 | `ic_cat_medical` | `#E34948` | `yiliao` | 3 |
-| `cat_tax` | `group_other` | 税金 | `ic_cat_other` | `#B8AAB1` | `shuijin` | 4 |
+| `cat_tax` | `group_other` | 税金 | `ic_cat_tax` | `#B8AAB1` | `shuijin` | 4 |
 | `cat_study` | `group_other` | 教育 | `ic_cat_study` | `#6250D6` | `jiaoyu` | 5 |
 | `cat_travel` | `group_travel` | 旅行 | `ic_cat_travel` | `#EB6834` | `lvxing` | 3 |
 

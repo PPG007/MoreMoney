@@ -57,13 +57,13 @@ class DatabaseTest {
       assertEquals(3, db.bookDao().countAll())
       assertEquals(6, db.categoryDao().listGroups().size)
       assertEquals(18, db.categoryDao().countAll())
-      assertEquals("2", db.appMetaDao().get("seed_version"))
+      assertEquals("3", db.appMetaDao().get("seed_version"))
       assertEquals("3", db.appMetaDao().get("schema_version"))
       assertFalse(tableExists("member"))
     }
 
   @Test
-  fun builtInCategoriesMatchV2List() =
+  fun builtInCategoriesMatchList() =
     runBlocking {
       val names = db.categoryDao().list().filter { !it.archived }.map { it.name }.toSet()
       assertEquals(
@@ -73,6 +73,14 @@ class DatabaseTest {
         ),
         names,
       )
+    }
+
+  @Test
+  fun builtInCategoryIconsAreUnique() =
+    runBlocking {
+      val icons = db.categoryDao().list().filter { !it.archived }.map { it.icon }
+      assertEquals(18, icons.size)
+      assertEquals(18, icons.toSet().size)
     }
 
   @Test
@@ -109,6 +117,54 @@ class DatabaseTest {
         assertEquals("yinshi", food.pinyin)
         assertTrue(legacyDb.categoryDao().get("cat_other")!!.archived)
         assertEquals(18, legacyDb.categoryDao().list().count { !it.archived })
+      } finally {
+        legacyDb.close()
+      }
+    }
+
+  @Test
+  fun seedV3UpgradesDefaultIconsWithoutOverwritingCustom() =
+    runBlocking {
+      val context: Context = ApplicationProvider.getApplicationContext()
+      val legacyDb =
+        Room.inMemoryDatabaseBuilder(context, MoreMoneyDatabase::class.java)
+          .addCallback(MoreMoneyDatabase.CALLBACK)
+          .allowMainThreadQueries()
+          .build()
+      try {
+        legacyDb.appMetaDao().put(AppMetaEntity("seed_version", "2"))
+        legacyDb.categoryDao().insert(
+          CategoryEntity(
+            id = "cat_shopping", groupId = "group_home", name = "日用", icon = "ic_cat_shopping",
+            color = "#E87BA4", pinyin = "riyong", sort = 1, archived = false, createdAt = 1,
+          )
+        )
+        legacyDb.categoryDao().insert(
+          CategoryEntity(
+            id = "cat_social", groupId = "group_leisure", name = "社交", icon = "ic_cat_entertain",
+            color = "#EDA100", pinyin = "shejiao", sort = 0, archived = false, createdAt = 1,
+          )
+        )
+        legacyDb.categoryDao().insert(
+          CategoryEntity(
+            id = "cat_beauty", groupId = "group_other", name = "美容", icon = "ic_cat_other",
+            color = "#E87BA4", pinyin = "meirong", sort = 2, archived = false, createdAt = 1,
+          )
+        )
+        // 用户自定义过图标的内置分类不应被覆盖。
+        legacyDb.categoryDao().insert(
+          CategoryEntity(
+            id = "cat_work", groupId = "group_other", name = "工作", icon = "ic_cat_food",
+            color = "#6250D6", pinyin = "gongzuo", sort = 1, archived = false, createdAt = 1,
+          )
+        )
+
+        SeedData.ensureSeeded(legacyDb)
+
+        assertEquals("ic_cat_daily", legacyDb.categoryDao().get("cat_shopping")!!.icon)
+        assertEquals("ic_cat_social", legacyDb.categoryDao().get("cat_social")!!.icon)
+        assertEquals("ic_cat_beauty", legacyDb.categoryDao().get("cat_beauty")!!.icon)
+        assertEquals("ic_cat_food", legacyDb.categoryDao().get("cat_work")!!.icon)
       } finally {
         legacyDb.close()
       }

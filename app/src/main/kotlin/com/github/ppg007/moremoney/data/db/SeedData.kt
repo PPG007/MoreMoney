@@ -16,9 +16,12 @@ import com.github.ppg007.moremoney.ui.theme.SeedColors
  * 礼物、通信、工作、服饰、娱乐、美容、医疗、税金、教育、旅行）。从 v1 升级时，
  * 名称仍为旧默认值的分类会原地重命名（保留 ID 与已有流水的关联）；旧的“其他”
  * 分类不再属于内置列表，未自定义时归档。
+ *
+ * v3 起 18 个内置分类各自使用不同图标；从 v1/v2 升级时，名称与图标仍为默认值
+ * 的分类会自动换成新图标（不覆盖用户自定义）。
  */
 object SeedData {
-  const val SEED_VERSION = 2
+  const val SEED_VERSION = 3
 
   suspend fun ensureSeeded(db: MoreMoneyDatabase) {
     val metaDao = db.appMetaDao()
@@ -30,6 +33,7 @@ object SeedData {
     insertBooks(db, now)
     insertGroups(db)
     migrateLegacyCategories(db)
+    upgradeCategoryIcons(db)
     insertCategories(db, now)
     metaDao.put(AppMetaEntity("seed_version", SEED_VERSION.toString()))
     metaDao.put(AppMetaEntity("schema_version", "3"))
@@ -74,6 +78,33 @@ object SeedData {
    * 仅在名称仍等于旧默认值时更新，避免覆盖用户自行修改过的分类；
    * ID 保持不变，历史流水无需迁移。
    */
+  /** v2 → v3：把仍是默认图标的内置分类换成各自独立的新图标。 */
+  private suspend fun upgradeCategoryIcons(db: MoreMoneyDatabase) {
+    val dao = db.categoryDao()
+    upgradeIcon(dao, "cat_shopping", "日用", "ic_cat_shopping", "ic_cat_daily")
+    upgradeIcon(dao, "cat_social", "社交", "ic_cat_entertain", "ic_cat_social")
+    upgradeIcon(dao, "cat_parking", "停车费", "ic_cat_transport", "ic_cat_parking")
+    upgradeIcon(dao, "cat_carwash", "洗车", "ic_cat_water", "ic_cat_carwash")
+    upgradeIcon(dao, "cat_gift", "礼物", "ic_cat_shopping", "ic_cat_gift")
+    upgradeIcon(dao, "cat_work", "工作", "ic_cat_repair", "ic_cat_work")
+    upgradeIcon(dao, "cat_clothing", "服饰", "ic_cat_shopping", "ic_cat_clothing")
+    upgradeIcon(dao, "cat_beauty", "美容", "ic_cat_other", "ic_cat_beauty")
+    upgradeIcon(dao, "cat_tax", "税金", "ic_cat_other", "ic_cat_tax")
+  }
+
+  private suspend fun upgradeIcon(
+    dao: CategoryDao,
+    id: String,
+    name: String,
+    oldIcon: String,
+    newIcon: String,
+  ) {
+    val current = dao.get(id) ?: return
+    if (current.name == name && current.icon == oldIcon) {
+      dao.update(current.copy(icon = newIcon))
+    }
+  }
+
   private suspend fun migrateLegacyCategories(db: MoreMoneyDatabase) {
     val dao = db.categoryDao()
     migrateLegacy(
@@ -192,20 +223,20 @@ object SeedData {
       listOf(
         Seed("cat_food", "group_food", "饮食", "ic_cat_food", SeedColors.c2, "yinshi", 0),
         Seed("cat_water", "group_home", "电费", "ic_cat_power", SeedColors.c7, "dianfei", 0),
-        Seed("cat_shopping", "group_home", "日用", "ic_cat_shopping", SeedColors.c5, "riyong", 1),
+        Seed("cat_shopping", "group_home", "日用", "ic_cat_daily", SeedColors.c5, "riyong", 1),
         Seed("cat_transport", "group_travel", "交通", "ic_cat_transport", SeedColors.c1, "jiaotong", 0),
-        Seed("cat_social", "group_leisure", "社交", "ic_cat_entertain", SeedColors.c4, "shejiao", 0),
+        Seed("cat_social", "group_leisure", "社交", "ic_cat_social", SeedColors.c4, "shejiao", 0),
         Seed("cat_home", "group_home", "住房物业", "ic_cat_home", SeedColors.c3, "zhufangwuye", 2),
-        Seed("cat_parking", "group_travel", "停车费", "ic_cat_transport", SeedColors.c1, "tingchefei", 1),
-        Seed("cat_carwash", "group_travel", "洗车", "ic_cat_water", SeedColors.c7, "xiche", 2),
-        Seed("cat_gift", "group_shop", "礼物", "ic_cat_shopping", SeedColors.c5, "liwu", 0),
+        Seed("cat_parking", "group_travel", "停车费", "ic_cat_parking", SeedColors.c1, "tingchefei", 1),
+        Seed("cat_carwash", "group_travel", "洗车", "ic_cat_carwash", SeedColors.c7, "xiche", 2),
+        Seed("cat_gift", "group_shop", "礼物", "ic_cat_gift", SeedColors.c5, "liwu", 0),
         Seed("cat_phone", "group_other", "通信", "ic_cat_phone", SeedColors.neutral, "tongxin", 0),
-        Seed("cat_work", "group_other", "工作", "ic_cat_repair", SeedColors.c6, "gongzuo", 1),
-        Seed("cat_clothing", "group_shop", "服饰", "ic_cat_shopping", SeedColors.c5, "fushi", 1),
+        Seed("cat_work", "group_other", "工作", "ic_cat_work", SeedColors.c6, "gongzuo", 1),
+        Seed("cat_clothing", "group_shop", "服饰", "ic_cat_clothing", SeedColors.c5, "fushi", 1),
         Seed("cat_entertain", "group_leisure", "娱乐", "ic_cat_entertain", SeedColors.c4, "yule", 1),
-        Seed("cat_beauty", "group_other", "美容", "ic_cat_other", SeedColors.c5, "meirong", 2),
+        Seed("cat_beauty", "group_other", "美容", "ic_cat_beauty", SeedColors.c5, "meirong", 2),
         Seed("cat_medical", "group_other", "医疗", "ic_cat_medical", SeedColors.c8, "yiliao", 3),
-        Seed("cat_tax", "group_other", "税金", "ic_cat_other", SeedColors.neutral, "shuijin", 4),
+        Seed("cat_tax", "group_other", "税金", "ic_cat_tax", SeedColors.neutral, "shuijin", 4),
         Seed("cat_study", "group_other", "教育", "ic_cat_study", SeedColors.c6, "jiaoyu", 5),
         Seed("cat_travel", "group_travel", "旅行", "ic_cat_travel", SeedColors.c2, "lvxing", 3),
       )

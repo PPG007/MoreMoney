@@ -22,19 +22,28 @@ fun iconResOf(name: String): Int =
     "ic_book_travel" -> R.drawable.ic_book_travel
     "ic_book_work" -> R.drawable.ic_book_work
     "ic_calendar" -> R.drawable.ic_calendar
+    "ic_cat_beauty" -> R.drawable.ic_cat_beauty
+    "ic_cat_carwash" -> R.drawable.ic_cat_carwash
+    "ic_cat_clothing" -> R.drawable.ic_cat_clothing
+    "ic_cat_daily" -> R.drawable.ic_cat_daily
     "ic_cat_entertain" -> R.drawable.ic_cat_entertain
     "ic_cat_food" -> R.drawable.ic_cat_food
+    "ic_cat_gift" -> R.drawable.ic_cat_gift
     "ic_cat_home" -> R.drawable.ic_cat_home
     "ic_cat_medical" -> R.drawable.ic_cat_medical
     "ic_cat_other" -> R.drawable.ic_cat_other
+    "ic_cat_parking" -> R.drawable.ic_cat_parking
     "ic_cat_phone" -> R.drawable.ic_cat_phone
     "ic_cat_power" -> R.drawable.ic_cat_power
     "ic_cat_repair" -> R.drawable.ic_cat_repair
     "ic_cat_shopping" -> R.drawable.ic_cat_shopping
+    "ic_cat_social" -> R.drawable.ic_cat_social
     "ic_cat_study" -> R.drawable.ic_cat_study
+    "ic_cat_tax" -> R.drawable.ic_cat_tax
     "ic_cat_transport" -> R.drawable.ic_cat_transport
     "ic_cat_travel" -> R.drawable.ic_cat_travel
     "ic_cat_water" -> R.drawable.ic_cat_water
+    "ic_cat_work" -> R.drawable.ic_cat_work
     "ic_check" -> R.drawable.ic_check
     "ic_chevron_left" -> R.drawable.ic_chevron_left
     "ic_chevron_right" -> R.drawable.ic_chevron_right
@@ -61,16 +70,25 @@ fun iconResOf(name: String): Int =
 val CategoryIconNames: List<String> =
   listOf(
     "ic_cat_food",
-    "ic_cat_transport",
-    "ic_cat_home",
+    "ic_cat_daily",
     "ic_cat_shopping",
+    "ic_cat_transport",
+    "ic_cat_parking",
+    "ic_cat_carwash",
+    "ic_cat_social",
+    "ic_cat_home",
+    "ic_cat_gift",
+    "ic_cat_clothing",
     "ic_cat_entertain",
+    "ic_cat_beauty",
     "ic_cat_medical",
+    "ic_cat_tax",
     "ic_cat_study",
     "ic_cat_water",
     "ic_cat_power",
     "ic_cat_phone",
     "ic_cat_travel",
+    "ic_cat_work",
     "ic_cat_repair",
     "ic_cat_other",
   )
