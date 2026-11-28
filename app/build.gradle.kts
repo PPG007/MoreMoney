@@ -30,8 +30,8 @@ android {
     minSdk = 26
     targetSdk = 37
     // 真机测试期固定 0.0.x：0.0.1 起每个测试包 +1 versionCode；测试通过后再切正式版本。
-    versionCode = 5
-    versionName = "0.0.5"
+    versionCode = 6
+    versionName = "0.0.6"
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
 
