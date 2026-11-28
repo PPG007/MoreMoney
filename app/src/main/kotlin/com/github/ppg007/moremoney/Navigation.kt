@@ -1,5 +1,9 @@
 package com.github.ppg007.moremoney
 
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.entryProvider
@@ -13,6 +17,8 @@ import com.github.ppg007.moremoney.ui.data.DataBackupScreen
 import com.github.ppg007.moremoney.ui.main.MainScreen
 import com.github.ppg007.moremoney.ui.search.SearchScreen
 
+private const val PredictiveBackFadeMs = 220
+
 /**
  * 根导航。一级 Tab 在 [MainScreen] 内部切换，二级页使用 Navigation 3 的
  * `@Serializable NavKey` push/pop；每个 entry 拥有独立的 ViewModelStore，
@@ -25,6 +31,12 @@ fun MainNavigation(container: AppContainer) {
   NavDisplay(
     backStack = backStack,
     onBack = { backStack.removeLastOrNull() },
+    // 系统预测性返回默认使用 scaleOut(0.7f) 且不淡出：页面缩到 70% 后会僵住再瞬间消失。
+    // 这里改为与普通 pop 一致的交叉淡出，手势进度直接驱动透明度，结束时不会突然跳变。
+    predictivePopTransitionSpec = {
+      fadeIn(animationSpec = tween(PredictiveBackFadeMs)) togetherWith
+        fadeOut(animationSpec = tween(PredictiveBackFadeMs))
+    },
     entryDecorators =
       listOf(
         rememberSaveableStateHolderNavEntryDecorator(),
