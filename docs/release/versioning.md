@@ -13,13 +13,13 @@
 
 | 项 | 值 |
 |---|---|
-| versionCode | 4 |
-| versionName | 0.0.4 |
+| versionCode | 5 |
+| versionName | 0.0.5 |
 | Room schema | 3 |
 | 备份 format | 1 |
 | 备份 schemaVersion | 3 |
 
-> 真机测试期（2026-11-24 起）：`versionName` 保持 `0.0.x`，从 `0.0.1` 开始；每个测试包 `versionCode` +1（0.0.1=1、0.0.2=2、0.0.3=3、0.0.4=4……）。真机测试通过后再切正式版本 1.0.0，`versionCode` 继续单调递增。
+> 真机测试期（2026-11-24 起）：`versionName` 保持 `0.0.x`，从 `0.0.1` 开始；每个测试包 `versionCode` +1（0.0.1=1、0.0.2=2、0.0.3=3、0.0.4=4、0.0.5=5……）。真机测试通过后再切正式版本 1.0.0，`versionCode` 继续单调递增。
 
 ## 3. 发布流程建议
 

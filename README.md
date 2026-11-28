@@ -32,4 +32,4 @@ Kotlin · Jetpack Compose (Material 3) · Room · Navigation 3 · Coroutines；J
 
 ## 状态
 
-当前为 `0.0.4` 真机测试期版本（`versionCode` 4）；测试通过后发布 `1.0.0`。
+当前为 `0.0.5` 真机测试期版本（`versionCode` 5）；测试通过后发布 `1.0.0`。
