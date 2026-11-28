@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -79,7 +80,12 @@ fun HomeHero(
     }
 
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.x5)) {
-      HeroIconButton(iconRes = R.drawable.ic_chevron_left, description = "上个月", onClick = onPrevMonth)
+      HeroIconButton(
+        iconRes = R.drawable.ic_chevron_left,
+        description = "上个月",
+        onClick = onPrevMonth,
+        modifier = Modifier.testTag("month_prev"),
+      )
       Text(
         text = monthLabel,
         style = MoreMoneyTextStyles.month.tabularNumbers(),
@@ -87,7 +93,12 @@ fun HomeHero(
         modifier = Modifier.weight(1f),
         textAlign = androidx.compose.ui.text.style.TextAlign.Center,
       )
-      HeroIconButton(iconRes = R.drawable.ic_chevron_right, description = "下个月", onClick = onNextMonth)
+      HeroIconButton(
+        iconRes = R.drawable.ic_chevron_right,
+        description = "下个月",
+        onClick = onNextMonth,
+        modifier = Modifier.testTag("month_next"),
+      )
     }
 
     Row(
@@ -99,6 +110,7 @@ fun HomeHero(
         selected = selectedBookId.isEmpty(),
         onHero = true,
         onClick = { onSelectBook("") },
+        modifier = Modifier.testTag("book_chip_all"),
       )
       books.forEach { book ->
         BookChip(
@@ -107,6 +119,7 @@ fun HomeHero(
           book = book,
           onHero = true,
           onClick = { onSelectBook(book.id) },
+          modifier = Modifier.testTag("book_chip_${book.id}"),
         )
       }
     }
@@ -118,11 +131,12 @@ private fun HeroIconButton(
   iconRes: Int,
   description: String,
   onClick: () -> Unit,
+  modifier: Modifier = Modifier,
 ) {
   val colors = MoreMoneyTheme.colors
   Box(
     modifier =
-      Modifier
+      modifier
         .size(36.dp)
         .clip(RoundedCornerShape(Radius.pill))
         .background(colors.heroGlass)

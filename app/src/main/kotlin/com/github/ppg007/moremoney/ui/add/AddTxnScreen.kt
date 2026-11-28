@@ -534,7 +534,11 @@ private fun MetaRow(
     modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.page).padding(top = Spacing.x2),
     horizontalArrangement = Arrangement.spacedBy(Spacing.x2),
   ) {
-    SelectorCell(value = bookName, onClick = onBook, modifier = Modifier.weight(1f))
+    SelectorCell(
+      value = bookName,
+      onClick = onBook,
+      modifier = Modifier.weight(1f).testTag("add_book_selector"),
+    )
     SelectorCell(value = dateText, onClick = onDate, modifier = Modifier.weight(1f))
     NoteCell(note = note, onClick = onNote, modifier = Modifier.weight(1f))
   }
@@ -776,6 +780,7 @@ private fun BookPickerSheet(
         modifier =
           Modifier
             .fillMaxWidth()
+            .testTag("add_book_option_${book.id}")
             .clip(RoundedCornerShape(Radius.chip))
             .background(if (book.id == selectedId) colors.brandWash else colors.surface)
             .clickable { onSelect(book) }

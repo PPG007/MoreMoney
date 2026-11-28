@@ -2,6 +2,9 @@ package com.github.ppg007.moremoney.ui
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasAnyDescendant
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
@@ -129,6 +132,103 @@ class MainScreenSmokeTest {
         composeRule.onAllNodesWithText("日常账本").fetchSemanticsNodes().isNotEmpty()
       }
     }
+
+  @Test
+  fun crossBookSaveAppearsInAllAndTargetBook() =
+    runBlocking {
+      val app = ApplicationProvider.getApplicationContext<MoreMoneyApp>()
+      app.container.db.txnDao().deleteAll()
+
+      composeRule.waitUntil(10_000) {
+        composeRule.onAllNodesWithTag("fab_add").fetchSemanticsNodes().isNotEmpty()
+      }
+      composeRule.onNodeWithTag("fab_add").performClick()
+      composeRule.waitUntil(5_000) {
+        composeRule.onAllNodesWithTag("save_txn").fetchSemanticsNodes().isNotEmpty()
+      }
+      composeRule.onNodeWithTag("add_book_selector").performClick()
+      composeRule.waitUntil(5_000) {
+        composeRule.onAllNodesWithTag("add_book_option_book_travel").fetchSemanticsNodes().isNotEmpty()
+      }
+      composeRule.onNodeWithTag("add_book_option_book_travel").performClick()
+      // 等底部弹层完全关闭后再点键盘，避免弹层窗口仍在拦截点击。
+      composeRule.waitUntil(5_000) {
+        composeRule.onAllNodesWithTag("add_book_option_book_travel").fetchSemanticsNodes().isEmpty()
+      }
+      listOf("key_4", "key_3", "key_2", "key_1").forEach {
+        composeRule.onNodeWithTag(it).performClick()
+      }
+      composeRule.waitUntil(3_000) {
+        composeRule.onAllNodesWithText("合计 ¥4,321.00").fetchSemanticsNodes().isNotEmpty()
+      }
+      composeRule.onNodeWithTag("save_txn").performClick()
+      composeRule.waitUntil(5_000) {
+        composeRule.onAllNodesWithTag("fab_add").fetchSemanticsNodes().isNotEmpty()
+      }
+
+      // 返回首页后应直接看到刚记的那笔（自动切到目标账本），不需要手动切账本。
+      waitForTxnAmount("¥4,321.00")
+      composeRule.onNodeWithTag("book_chip_all").performClick()
+      waitForTxnAmount("¥4,321.00")
+      composeRule.onNodeWithTag("book_chip_book_travel").performClick()
+      waitForTxnAmount("¥4,321.00")
+      composeRule.onNodeWithTag("book_chip_book_daily").performClick()
+      composeRule.waitUntil(5_000) {
+        composeRule.onAllNodes(
+          hasTestTag("txn_row") and hasAnyDescendant(hasText("¥4,321.00")),
+          useUnmergedTree = true,
+        ).fetchSemanticsNodes().isEmpty()
+      }
+    }
+
+  @Test
+  fun saveFromPreviousMonthRevealsTransaction() =
+    runBlocking {
+      val app = ApplicationProvider.getApplicationContext<MoreMoneyApp>()
+      app.container.db.txnDao().deleteAll()
+
+      composeRule.waitUntil(10_000) {
+        composeRule.onAllNodesWithTag("fab_add").fetchSemanticsNodes().isNotEmpty()
+      }
+      // 首页先切到上个月，再记一笔（默认日期为今天）。
+      composeRule.onNodeWithTag("month_prev").performClick()
+      composeRule.onNodeWithTag("fab_add").performClick()
+      composeRule.waitUntil(5_000) {
+        composeRule.onAllNodesWithTag("save_txn").fetchSemanticsNodes().isNotEmpty()
+      }
+      composeRule.onNodeWithTag("add_book_selector").performClick()
+      composeRule.waitUntil(5_000) {
+        composeRule.onAllNodesWithTag("add_book_option_book_travel").fetchSemanticsNodes().isNotEmpty()
+      }
+      composeRule.onNodeWithTag("add_book_option_book_travel").performClick()
+      composeRule.waitUntil(5_000) {
+        composeRule.onAllNodesWithTag("add_book_option_book_travel").fetchSemanticsNodes().isEmpty()
+      }
+      listOf("key_5", "key_4", "key_3", "key_2").forEach {
+        composeRule.onNodeWithTag(it).performClick()
+      }
+      composeRule.waitUntil(3_000) {
+        composeRule.onAllNodesWithText("合计 ¥5,432.00").fetchSemanticsNodes().isNotEmpty()
+      }
+      composeRule.onNodeWithTag("save_txn").performClick()
+      composeRule.waitUntil(5_000) {
+        composeRule.onAllNodesWithTag("fab_add").fetchSemanticsNodes().isNotEmpty()
+      }
+
+      // 首页自动切到这笔流水的月份与账本，立刻可见。
+      waitForTxnAmount("¥5,432.00")
+      composeRule.onNodeWithTag("book_chip_all").performClick()
+      waitForTxnAmount("¥5,432.00")
+    }
+
+  private fun waitForTxnAmount(amount: String) {
+    composeRule.waitUntil(5_000) {
+      composeRule.onAllNodes(
+        hasTestTag("txn_row") and hasAnyDescendant(hasText(amount)),
+        useUnmergedTree = true,
+      ).fetchSemanticsNodes().isNotEmpty()
+    }
+  }
 
   @Test
   fun hideAmountBlursAllAmounts() {

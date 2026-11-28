@@ -221,6 +221,7 @@ class AddTxnViewModel(
         } else {
           container.txnRepository.update(txn)
         }
+        container.ui.notifyTxnSaved(txn.bookId, txn.dayKey)
         onDone()
       } catch (error: Exception) {
         container.ui.showSnack("保存失败：${ErrorUtil.messageOf(error)}")

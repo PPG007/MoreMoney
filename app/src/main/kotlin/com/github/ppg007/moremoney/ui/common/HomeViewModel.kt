@@ -82,6 +82,16 @@ class HomeViewModel(private val container: AppContainer) : ViewModel() {
       )
     }
 
+  init {
+    viewModelScope.launch {
+      container.ui.savedTxn.collect {
+        val saved = container.ui.consumeSavedTxn() ?: return@collect
+        monthKey.value = saved.dayKey.take(7)
+        selectedBook.value = saved.bookId
+      }
+    }
+  }
+
   private val inputsFlow = combine(monthKey, selectedBook) { month, book -> month to book }
 
   val state: StateFlow<LedgerUiState> =
