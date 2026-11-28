@@ -257,7 +257,7 @@ adb shell am start -n com.github.ppg007.moremoney/.MainActivity
 - Tab：`ic_tab_books`、`ic_tab_budget`、`ic_tab_charts`、`ic_tab_settings`
 - 通用：`ic_back`、`ic_close`、`ic_plus`、`ic_chevron_left`、`ic_chevron_right`、`ic_eye`、`ic_eye_off`、`ic_search`、`ic_calendar`、`ic_member`、`ic_book`、`ic_edit`、`ic_trash`、`ic_archive`、`ic_file`、`ic_cloud`、`ic_warning`、`ic_undo`、`ic_more`、`ic_check`
 - 分类：`ic_cat_food`、`ic_cat_transport`、`ic_cat_home`、`ic_cat_shopping`、`ic_cat_entertain`、`ic_cat_medical`、`ic_cat_study`、`ic_cat_water`、`ic_cat_power`、`ic_cat_phone`、`ic_cat_travel`、`ic_cat_repair`、`ic_cat_other`
-- 账本封面：`ic_book_daily`、`ic_book_travel`、`ic_book_family`、`ic_book_study`、`ic_book_work`、`ic_book_repair`
+- 账本封面：账本主题 6 个（`ic_book_daily`、`ic_book_travel`、`ic_book_family`、`ic_book_study`、`ic_book_work`、`ic_book_repair`）+ 补充主题 11 个（钱包、储蓄、银行、信用卡、投资、货币、宠物、育儿、健身、庆祝、咖啡）+ 全部记账分类图标
 
 **转换脚本要求：**
 
@@ -626,7 +626,7 @@ fun showSnack(message: String, action: SnackAction? = null, durationMs: Long = 5
 | 子任务 | 内容与产出 | 验收 |
 |---|---|---|
 | T08.1 | `BookManageScreen` + `BookCard`：封面、名称、预算、默认徽标 | 与 `16-books-light.png` 对齐 |
-| T08.2 | `BookEditSheet`：名称、图标（6 个封面）、颜色（种子色板）、默认开关 | 新建/编辑即时生效 |
+| T08.2 | `BookEditSheet`：名称、图标（账本主题 + 分类图标，可滚动）、颜色（种子色板）、默认开关 | 新建/编辑即时生效 |
 | T08.3 | 操作：设默认、归档、删除（有流水拒绝）、预算编辑（复用 T12 `BudgetEditDialog`） | 默认唯一、归档不出现在选择器 |
 | T08.4 | 测试：默认账本、归档、删除约束、排序持久化 | instrumentation |
 

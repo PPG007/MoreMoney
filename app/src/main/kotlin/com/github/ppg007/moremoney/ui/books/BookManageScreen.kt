@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -462,68 +463,77 @@ private fun BookEditSheet(
   var isDefault by remember(existing) { mutableStateOf(existing?.isDefault ?: false) }
 
   AppBottomSheet(onDismiss = onDismiss) {
-    SheetTitle(title = if (existing == null) "新建账本" else "编辑账本")
-    AppTextField(value = name, onValueChange = { name = it.take(20) }, placeholder = "账本名称", height = 44)
-    Text(text = "封面", style = MoreMoneyTextStyles.legend, color = colors.ink3)
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.x3), verticalArrangement = Arrangement.spacedBy(Spacing.x3)) {
-      BookIconNames.forEach { item ->
-        val selected = icon == item
-        Box(
-          modifier =
-            Modifier
-              .size(48.dp)
-              .clip(RoundedCornerShape(14.dp))
-              .background(if (selected) colors.brandWash else colors.surface2)
-              .border(1.dp, if (selected) colors.brandInk else colors.line, RoundedCornerShape(14.dp))
-              .clickable { icon = item },
-          contentAlignment = Alignment.Center,
-        ) {
-          Icon(
-            painter = painterResource(iconResOf(item)),
-            contentDescription = null,
-            tint = if (selected) colors.brandInk else colors.ink2,
-            modifier = Modifier.size(23.dp),
-          )
-        }
-      }
-    }
-    Text(text = "颜色", style = MoreMoneyTextStyles.legend, color = colors.ink3)
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.x3), verticalArrangement = Arrangement.spacedBy(Spacing.x3)) {
-      SeedColors.all.forEach { item ->
-        val selected = color == item
-        Box(
-          modifier =
-            Modifier
-              .size(30.dp)
-              .clip(CircleShape)
-              .background(parseColorOf(item))
-              .border(if (selected) 3.dp else 0.dp, if (selected) colors.surface else colors.surface, CircleShape)
-              .clickable { color = item },
-          contentAlignment = Alignment.Center,
-        ) {
-          if (selected) {
+    Column(
+      modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
+      verticalArrangement = Arrangement.spacedBy(Spacing.x5),
+    ) {
+      SheetTitle(title = if (existing == null) "新建账本" else "编辑账本")
+      AppTextField(value = name, onValueChange = { name = it.take(20) }, placeholder = "账本名称", height = 44)
+      Text(text = "封面", style = MoreMoneyTextStyles.legend, color = colors.ink3)
+      FlowRow(
+        modifier = Modifier.fillMaxWidth().heightIn(max = 240.dp).verticalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.x3),
+        verticalArrangement = Arrangement.spacedBy(Spacing.x3),
+      ) {
+        BookIconNames.forEach { item ->
+          val selected = icon == item
+          Box(
+            modifier =
+              Modifier
+                .size(48.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(if (selected) colors.brandWash else colors.surface2)
+                .border(1.dp, if (selected) colors.brandInk else colors.line, RoundedCornerShape(14.dp))
+                .clickable { icon = item },
+            contentAlignment = Alignment.Center,
+          ) {
             Icon(
-              painter = painterResource(R.drawable.ic_check),
+              painter = painterResource(iconResOf(item)),
               contentDescription = null,
-              tint = colors.buttonForeground,
-              modifier = Modifier.size(15.dp),
+              tint = if (selected) colors.brandInk else colors.ink2,
+              modifier = Modifier.size(23.dp),
             )
           }
         }
       }
-    }
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-      Column(modifier = Modifier.weight(1f)) {
-        Text(text = "设为默认账本", style = MoreMoneyTextStyles.settingsTitle, color = colors.ink)
-        Text(text = "默认账本全局唯一", style = MoreMoneyTextStyles.caption, color = colors.ink3)
+      Text(text = "颜色", style = MoreMoneyTextStyles.legend, color = colors.ink3)
+      FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.x3), verticalArrangement = Arrangement.spacedBy(Spacing.x3)) {
+        SeedColors.all.forEach { item ->
+          val selected = color == item
+          Box(
+            modifier =
+              Modifier
+                .size(30.dp)
+                .clip(CircleShape)
+                .background(parseColorOf(item))
+                .border(if (selected) 3.dp else 0.dp, if (selected) colors.surface else colors.surface, CircleShape)
+                .clickable { color = item },
+            contentAlignment = Alignment.Center,
+          ) {
+            if (selected) {
+              Icon(
+                painter = painterResource(R.drawable.ic_check),
+                contentDescription = null,
+                tint = colors.buttonForeground,
+                modifier = Modifier.size(15.dp),
+              )
+            }
+          }
+        }
       }
-      AppSwitch(checked = isDefault, onCheckedChange = { isDefault = it })
+      Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.weight(1f)) {
+          Text(text = "设为默认账本", style = MoreMoneyTextStyles.settingsTitle, color = colors.ink)
+          Text(text = "默认账本全局唯一", style = MoreMoneyTextStyles.caption, color = colors.ink3)
+        }
+        AppSwitch(checked = isDefault, onCheckedChange = { isDefault = it })
+      }
+      PrimaryButton(
+        text = "保存",
+        enabled = name.trim().isNotEmpty(),
+        onClick = { onSave(name.trim(), icon, color, isDefault) },
+      )
     }
-    PrimaryButton(
-      text = "保存",
-      enabled = name.trim().isNotEmpty(),
-      onClick = { onSave(name.trim(), icon, color, isDefault) },
-    )
   }
 }
 

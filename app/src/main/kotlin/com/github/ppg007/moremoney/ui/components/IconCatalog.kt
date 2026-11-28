@@ -15,11 +15,22 @@ fun iconResOf(name: String): Int =
     "ic_archive" -> R.drawable.ic_archive
     "ic_back" -> R.drawable.ic_back
     "ic_book" -> R.drawable.ic_book
+    "ic_book_bank" -> R.drawable.ic_book_bank
+    "ic_book_cafe" -> R.drawable.ic_book_cafe
+    "ic_book_card" -> R.drawable.ic_book_card
+    "ic_book_celebration" -> R.drawable.ic_book_celebration
+    "ic_book_child" -> R.drawable.ic_book_child
     "ic_book_daily" -> R.drawable.ic_book_daily
     "ic_book_family" -> R.drawable.ic_book_family
+    "ic_book_fitness" -> R.drawable.ic_book_fitness
+    "ic_book_invest" -> R.drawable.ic_book_invest
+    "ic_book_money" -> R.drawable.ic_book_money
+    "ic_book_pet" -> R.drawable.ic_book_pet
     "ic_book_repair" -> R.drawable.ic_book_repair
+    "ic_book_savings" -> R.drawable.ic_book_savings
     "ic_book_study" -> R.drawable.ic_book_study
     "ic_book_travel" -> R.drawable.ic_book_travel
+    "ic_book_wallet" -> R.drawable.ic_book_wallet
     "ic_book_work" -> R.drawable.ic_book_work
     "ic_calendar" -> R.drawable.ic_calendar
     "ic_cat_beauty" -> R.drawable.ic_cat_beauty
@@ -93,7 +104,7 @@ val CategoryIconNames: List<String> =
     "ic_cat_other",
   )
 
-/** 账本封面可选列表。 */
+/** 账本封面可选列表：账本主题图标 + 全部记账分类图标。 */
 val BookIconNames: List<String> =
   listOf(
     "ic_book_daily",
@@ -102,4 +113,15 @@ val BookIconNames: List<String> =
     "ic_book_study",
     "ic_book_work",
     "ic_book_repair",
-  )
+    "ic_book_wallet",
+    "ic_book_savings",
+    "ic_book_bank",
+    "ic_book_card",
+    "ic_book_invest",
+    "ic_book_money",
+    "ic_book_pet",
+    "ic_book_child",
+    "ic_book_fitness",
+    "ic_book_celebration",
+    "ic_book_cafe",
+  ) + CategoryIconNames

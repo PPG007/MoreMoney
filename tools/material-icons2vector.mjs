@@ -6,7 +6,7 @@
 //
 // 与 tools/svg2vector.mjs 的差异：
 // - 跳过 fill="none" 的占位 path（Material 图标常带一个 24x24 的透明底）；
-// - 支持 simple <circle> / <rect>（填充图形），转换为等价 pathData；
+// - 支持 simple <circle> / <rect> / <polygon>（填充图形），转换为等价 pathData；
 // - 输出头标注 Material Icons 来源与 Apache License 2.0。
 //
 // 只处理 24x24 单色图标；颜色统一为 #FF000000，由 Compose Icon 的 tint 着色。
@@ -27,7 +27,7 @@ let converted = 0;
 for (const file of files) {
   const svgPath = join(srcDir, file);
   const svg = readFileSync(svgPath, 'utf8');
-  const elements = [...svg.matchAll(/<(path|circle|rect)\b([^>]*?)\/?>/g)];
+  const elements = [...svg.matchAll(/<(path|circle|rect|polygon)\b([^>]*?)\/?>/g)];
   const body = elements
     .map(([, tag, attrs]) => {
       if (attr(attrs, 'fill') === 'none' || attr(attrs, 'style').includes('fill:none')) {
@@ -50,6 +50,17 @@ for (const file of files) {
           'a' + fmt(r) + ',' + fmt(r) + ' 0 1,0 ' + fmt(r * 2) + ',0' +
           'a' + fmt(r) + ',' + fmt(r) + ' 0 1,0 ' + fmt(-r * 2) + ',0Z';
         return pathLine(d, false);
+      }
+      if (tag === 'polygon') {
+        const points = attr(attrs, 'points').trim().split(/[\s,]+/).filter(Boolean).map(num);
+        if (points.length < 6 || points.length % 2 !== 0) {
+          return '';
+        }
+        let d = '';
+        for (let i = 0; i < points.length; i += 2) {
+          d += (i === 0 ? 'M' : 'L') + fmt(points[i]) + ',' + fmt(points[i + 1]);
+        }
+        return pathLine(d + 'Z', false);
       }
       const x = num(attr(attrs, 'x'));
       const y = num(attr(attrs, 'y'));
