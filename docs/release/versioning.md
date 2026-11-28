@@ -7,17 +7,17 @@
   - MAJOR：数据格式/备份兼容性破坏，或大版本重构；
   - MINOR：新增功能（如新的统计视图）；
   - PATCH：修复、文案、样式微调。
-- `schemaVersion`（备份文件内）：当前固定为 `1`。只有 SQLite 表结构或备份正文格式变化才升级，并在 `docs/tasks/` 记录迁移与测试。
+- `schemaVersion`（备份文件内）：当前为 `3`。只有 SQLite 表结构或备份正文格式变化才升级，并在 `docs/tasks/` 记录迁移与测试；当前兼容读取 v1/v2。
 
 ## 2. 当前基线
 
 | 项 | 值 |
 |---|---|
-| versionCode | 1 |
-| versionName | 0.0.1 |
-| Room schema | 1 |
+| versionCode | 2 |
+| versionName | 0.0.2 |
+| Room schema | 3 |
 | 备份 format | 1 |
-| 备份 schemaVersion | 1 |
+| 备份 schemaVersion | 3 |
 
 > 真机测试期（2026-11-24 起）：`versionName` 保持 `0.0.x`，从 `0.0.1` 开始；每个测试包 `versionCode` +1（0.0.1=1、0.0.2=2……）。真机测试通过后再切正式版本 1.0.0，`versionCode` 继续单调递增。
 
