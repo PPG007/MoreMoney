@@ -30,14 +30,14 @@ data class BackupDocument(
  * `MOREMONEY_BACKUP` 文件格式（Android 独立版）。
  *
  * - `format=1` 不变；
- * - `schemaVersion=2`：移除成员，TXN 行 9 列、不再输出 MEMBER 行；
- * - 仍可读取 schemaVersion=1 的旧备份：MEMBER 行忽略，TXN 第 4 列 member 忽略；
+ * - `schemaVersion=3`：预算改为每个账本一条“周期 + 金额”，BUDGET 行第 3 列写周期；
+ * - 仍可读取 schemaVersion=1/2 的旧备份：MEMBER 行忽略，旧 BUDGET 的月份字段按月度预算处理；
  * - Android 不生成 `PRIVATE` 行，但解析时保留该类型以便识别并跳过。
  */
 object BackupFormat {
   const val MAGIC = "MOREMONEY_BACKUP"
   const val FORMAT_VERSION = 1
-  const val SCHEMA_VERSION = 2
+  const val SCHEMA_VERSION = 3
   const val LEGACY_SCHEMA_VERSION = 1
 
   fun buildBody(lines: List<BackupLine>): String =
@@ -92,7 +92,7 @@ object BackupFormat {
     if (doc.format != FORMAT_VERSION) {
       throw IllegalArgumentException("不支持的备份格式版本")
     }
-    if (doc.schemaVersion != SCHEMA_VERSION && doc.schemaVersion != LEGACY_SCHEMA_VERSION) {
+    if (doc.schemaVersion !in LEGACY_SCHEMA_VERSION..SCHEMA_VERSION) {
       throw IllegalArgumentException("备份数据版本不兼容，请升级应用")
     }
     if (doc.checksum.isEmpty()) {

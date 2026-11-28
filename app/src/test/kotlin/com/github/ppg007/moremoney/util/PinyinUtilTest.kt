@@ -12,6 +12,12 @@ class PinyinUtilTest {
     assertEquals("chuxing", PinyinUtil.key("出行"))
     assertEquals("jiaotong", PinyinUtil.key("交通"))
     assertEquals("gouwu", PinyinUtil.key("购物"))
+    assertEquals("shejiao", PinyinUtil.key("社交"))
+    assertEquals("zhufangwuye", PinyinUtil.key("住房物业"))
+    assertEquals("xiche", PinyinUtil.key("洗车"))
+    assertEquals("gongzuo", PinyinUtil.key("工作"))
+    assertEquals("fushi", PinyinUtil.key("服饰"))
+    assertEquals("meirong", PinyinUtil.key("美容"))
   }
 
   @Test

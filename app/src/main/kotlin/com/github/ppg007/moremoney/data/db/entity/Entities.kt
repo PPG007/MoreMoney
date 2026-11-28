@@ -4,6 +4,7 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.github.ppg007.moremoney.models.BudgetCycle
 
 /**
  * 业务数据表（schema v2）。
@@ -72,12 +73,12 @@ data class TxnEntity(
 
 @Entity(
   tableName = "budget",
-  indices = [Index(value = ["book_id", "period"], unique = true, name = "idx_budget_book_period")],
+  indices = [Index(value = ["book_id"], unique = true, name = "idx_budget_book")],
 )
 data class BudgetEntity(
   @PrimaryKey val id: String,
   @ColumnInfo(name = "book_id") val bookId: String,
-  val period: String,
+  val cycle: BudgetCycle,
   @ColumnInfo(name = "amount_cents") val amountCents: Long,
   @ColumnInfo(name = "updated_at") val updatedAt: Long,
 )

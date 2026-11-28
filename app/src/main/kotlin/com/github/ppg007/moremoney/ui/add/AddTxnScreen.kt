@@ -93,7 +93,7 @@ fun AddTxnScreen(
   var showDiscard by remember { mutableStateOf(false) }
   var showDelete by remember { mutableStateOf(false) }
 
-  SystemBarAppearance(darkIcons = true)
+  SystemBarAppearance()
 
   fun requestClose() {
     if (viewModel.hasChanges()) {
@@ -154,7 +154,8 @@ fun AddTxnScreen(
           )
         }
       } else {
-        Text(text = "仅支出", style = MoreMoneyTextStyles.caption, color = colors.ink3, modifier = Modifier.width(48.dp), textAlign = TextAlign.End)
+        // 占位保持标题与编辑态的删除按钮左右对称。
+        Spacer(modifier = Modifier.width(34.dp))
       }
     }
 

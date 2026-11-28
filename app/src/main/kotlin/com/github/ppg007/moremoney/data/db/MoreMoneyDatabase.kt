@@ -19,9 +19,10 @@ import com.github.ppg007.moremoney.data.db.entity.CategoryGroupEntity
 import com.github.ppg007.moremoney.data.db.entity.TxnEntity
 
 /**
- * MoreMoney 数据库，version = 2。
+ * MoreMoney 数据库，version = 3。
  *
  * v2 删除 `member` 表与 `txn.member_id`，迁移见 [MIGRATION_1_2]；
+ * v3 预算改为每账本一条“周期 + 金额”，迁移见 [MIGRATION_2_3]；
  * `book` 表省略 4 个私密列。
  * `idx_book_default` 是部分唯一索引，Room 的 `@Index` 不支持 `WHERE` 子句，
  * 因此放在 [CALLBACK] 的 `onCreate` / `onOpen` 中创建；Room 导出的 schema JSON 不包含它。
@@ -35,7 +36,7 @@ import com.github.ppg007.moremoney.data.db.entity.TxnEntity
     BudgetEntity::class,
     AppMetaEntity::class,
   ],
-  version = 2,
+  version = 3,
   exportSchema = true,
 )
 abstract class MoreMoneyDatabase : RoomDatabase() {
@@ -76,7 +77,7 @@ abstract class MoreMoneyDatabase : RoomDatabase() {
     fun create(context: Context, name: String = DB_NAME): MoreMoneyDatabase =
       Room.databaseBuilder(context.applicationContext, MoreMoneyDatabase::class.java, name)
         .addCallback(CALLBACK)
-        .addMigrations(MIGRATION_1_2)
+        .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
         .build()
   }
 }

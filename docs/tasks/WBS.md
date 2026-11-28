@@ -11,6 +11,8 @@
 > **2026-11-24 实现进度：** T00–T08、T10–T26 完成（T09 已删除、T13 已取消）。构建、58 个 JVM 单测、19 个 instrumentation（含 v1→v2 迁移测试）、Lint 0 error、Release（R8）构建与签名安装/升级/降级验证均通过；深色/360dp/1.3× 字体/横屏验收见 `docs/tasks/T25-report.md`，发布文档见 `docs/release/`，暂停/续做快照见 `docs/tasks/PROGRESS-2026-11-23.md`，截图见 `docs/screenshots/`。
 >
 > **2026-11-24 范围变更：** Android 改为独立应用，**删除成员管理**。本文件中 T06/T07/T09/T11/T18/T19/T20/T22 涉及成员的子项均不再适用；Room schema 升为 v2（无 `member` 表/`member_id`，保留流水迁移），CSV 9 列（旧 10 列可导入并忽略成员），备份 `schemaVersion=2`（可读旧 v1 并忽略成员）。
+>
+> **2026-11-28 预算改造：** Room schema 升为 v3。`budget` 表改为每个账本一条配置（`cycle` = `YEAR`/`QUARTER`/`MONTH` + 金额，唯一索引 `idx_budget_book`），设置后自动按周期重复；旧版按月预算迁移时保留每账本最新一条。备份 `schemaVersion=3`，仍兼容读取 v1/v2。T12 口径与页面同步更新。
 
 ---
 
@@ -132,7 +134,7 @@ tools/svg2vector.py               # 历史 SVG → Android VectorDrawable
 
 - `transaction`、`book`、`category` 等表名/列名不得改；金额列必须以 `_cents` 结尾。
 - **Schema：** 以 `app/schemas/.../2.json` 为准；`book` 表只保留 9 个普通列（无 `is_private` / `pwd_hash` / `pwd_salt` / `pwd_iter`），无 `member` 表、无 `txn.member_id`。
-- 备份文件 `MOREMONEY_BACKUP`、`format=1`、`schemaVersion=2`、校验和算法不得改；兼容读取 v1 旧备份；Android 不生成 `PRIVATE` 段。
+- 备份文件 `MOREMONEY_BACKUP`、`format=1`、`schemaVersion=3`、校验和算法不得改；兼容读取 v1/v2 旧备份；Android 不生成 `PRIVATE` 段。
 - CSV 列顺序、UTF-8 BOM、CRLF、金额两位小数不得改。
 - Android 不实现私密账本：无密码、无生物识别、无锁定、无 PBKDF2/AES-GCM、无 `PrivateBookService`。
 - 恢复旧备份时跳过 `is_private=1` 的账本与 `PRIVATE` 行，并在预览中提示；不得把私密数据当作普通账本导入。
@@ -316,7 +318,7 @@ SideEffect {
 
 ### T03 · Room 数据层
 
-**目标：** 建立 Android 独立数据层（schema v2，无成员表），页面只依赖 DAO/Repository，不直接写 SQL。
+**目标：** 建立 Android 独立数据层（schema v3，无成员表），页面只依赖 DAO/Repository，不直接写 SQL。
 
 **前置：** Room + KSP 兼容性已实测通过（见依赖复核 §4.1）。
 
@@ -324,9 +326,9 @@ SideEffect {
 |---|---|---|
 | T03.1 | 版本目录增加 `room=2.8.5`、`ksp=2.3.14`、`coroutines-android=1.10.2`；根/app 应用 KSP；配置 `room.schemaLocation` | `assembleDebug` 成功 |
 | T03.2 | 6 个 Entity：`BookEntity`、`CategoryGroupEntity`、`CategoryEntity`、`TxnEntity`、`BudgetEntity`、`AppMetaEntity`；所有列名用 `@ColumnInfo` 显式声明；无 `MemberEntity` | `PRAGMA table_info` 与 `2.json` 一致 |
-| T03.3 | `MoreMoneyDatabase`（version=2，`exportSchema=true`）；`MIGRATION_1_2` 删除成员表/列并重建 `txn`；部分唯一索引 `idx_book_default` 用 `RoomDatabase.Callback.onCreate/onOpen` 执行 SQL | `PRAGMA index_list(book)` 含 `idx_book_default` |
+| T03.3 | `MoreMoneyDatabase`（version=3，`exportSchema=true`）；`MIGRATION_1_2` 删除成员表/列并重建 `txn`；`MIGRATION_2_3` 把按月的 `budget` 表重建为每账本一条（`cycle` + 金额）；部分唯一索引 `idx_book_default` 用 `RoomDatabase.Callback.onCreate/onOpen` 执行 SQL | `PRAGMA index_list(book)` 含 `idx_book_default` |
 | T03.4 | 6 个 DAO：Book/Category/Txn/Budget/AppMeta/Stats；列表查询返回 `Flow`，写操作 `suspend`；动态筛选用 `@RawQuery` | DAO 方法覆盖页面与统计需求 |
-| T03.5 | 幂等种子数据：固定 ID、名称、颜色、拼音；3 个普通账本；`app_meta.seed_version=1` | 连续启动 3 次不重复 |
+| T03.5 | 幂等种子数据：固定 ID、名称、颜色、拼音；3 个普通账本；18 个内置分类；`app_meta.seed_version=2`（v1 升级时按旧默认名称原地改名并归档旧“其他”） | 连续启动 3 次不重复 |
 | T03.6 | `MoreMoneyApp` + `AppContainer`：持有数据库、Repository、SettingsService；Manifest 注册 | 冷启动可拿到单例 |
 | T03.7 | Instrumentation DAO 测试：CRUD、软删/恢复、默认账本唯一、dayKey 边界、预算 upsert、种子幂等；断言 `book` 表没有 `is_private` / `pwd_hash` / `pwd_salt` / `pwd_iter` | `connectedDebugAndroidTest` 全绿 |
 | T03.8 | 调试演示数据 `DebugSeedService` 放 `src/debug`：4 账本、30 笔本月流水、2 个预算 | 仅 debug 包可见 |
@@ -389,22 +391,32 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_book_default ON book(is_default) WHERE is_
 
 所有种子账本均为普通账本；所有种子分组 `is_system=1`；所有种子分类 `archived=0`。种子账本/分类/分组的 `createdAt` 用同一次启动的当前时间。成员种子已于 2026-11-24 删除。
 
-分类（10 个）：
+分类（18 个）：
 
 | ID | 分组 | 名称 | 图标 | 颜色 | 拼音 | sort |
 |---|---|---|---|---|---|---:|
-| `cat_food` | `group_food` | 餐饮 | `ic_cat_food` | `#EB6834` | `canyin` | 0 |
+| `cat_food` | `group_food` | 饮食 | `ic_cat_food` | `#EB6834` | `yinshi` | 0 |
+| `cat_water` | `group_home` | 电费 | `ic_cat_power` | `#008300` | `dianfei` | 0 |
+| `cat_shopping` | `group_home` | 日用 | `ic_cat_shopping` | `#E87BA4` | `riyong` | 1 |
 | `cat_transport` | `group_travel` | 交通 | `ic_cat_transport` | `#2A78D6` | `jiaotong` | 0 |
-| `cat_home` | `group_home` | 居家 | `ic_cat_home` | `#1BAF7A` | `jujia` | 0 |
-| `cat_shopping` | `group_shop` | 购物 | `ic_cat_shopping` | `#E87BA4` | `gouwu` | 0 |
-| `cat_entertain` | `group_leisure` | 娱乐 | `ic_cat_entertain` | `#EDA100` | `yule` | 0 |
-| `cat_medical` | `group_other` | 医疗 | `ic_cat_medical` | `#E34948` | `yiliao` | 0 |
-| `cat_study` | `group_other` | 学习 | `ic_cat_study` | `#6250D6` | `xuexi` | 1 |
-| `cat_water` | `group_home` | 水电 | `ic_cat_water` | `#008300` | `shuidian` | 1 |
-| `cat_phone` | `group_other` | 通讯 | `ic_cat_phone` | `#B8AAB1` | `tongxun` | 2 |
-| `cat_other` | `group_other` | 其他 | `ic_cat_other` | `#B8AAB1` | `qita` | 3 |
+| `cat_social` | `group_leisure` | 社交 | `ic_cat_entertain` | `#EDA100` | `shejiao` | 0 |
+| `cat_home` | `group_home` | 住房物业 | `ic_cat_home` | `#1BAF7A` | `zhufangwuye` | 2 |
+| `cat_parking` | `group_travel` | 停车费 | `ic_cat_transport` | `#2A78D6` | `tingchefei` | 1 |
+| `cat_carwash` | `group_travel` | 洗车 | `ic_cat_water` | `#008300` | `xiche` | 2 |
+| `cat_gift` | `group_shop` | 礼物 | `ic_cat_shopping` | `#E87BA4` | `liwu` | 0 |
+| `cat_phone` | `group_other` | 通信 | `ic_cat_phone` | `#B8AAB1` | `tongxin` | 0 |
+| `cat_work` | `group_other` | 工作 | `ic_cat_repair` | `#6250D6` | `gongzuo` | 1 |
+| `cat_clothing` | `group_shop` | 服饰 | `ic_cat_shopping` | `#E87BA4` | `fushi` | 1 |
+| `cat_entertain` | `group_leisure` | 娱乐 | `ic_cat_entertain` | `#EDA100` | `yule` | 1 |
+| `cat_beauty` | `group_other` | 美容 | `ic_cat_other` | `#E87BA4` | `meirong` | 2 |
+| `cat_medical` | `group_other` | 医疗 | `ic_cat_medical` | `#E34948` | `yiliao` | 3 |
+| `cat_tax` | `group_other` | 税金 | `ic_cat_other` | `#B8AAB1` | `shuijin` | 4 |
+| `cat_study` | `group_other` | 教育 | `ic_cat_study` | `#6250D6` | `jiaoyu` | 5 |
+| `cat_travel` | `group_travel` | 旅行 | `ic_cat_travel` | `#EB6834` | `lvxing` | 3 |
 
-**预算 ID：** 首次写入使用 `budget_<bookId>_<period>`；已存在时保留原 ID，保证稳定。
+> 2026-11-28：内置分类由 v1 的 10 个调整为以上 18 个。种子版本升为 2；v1 升级时仅在名称仍为旧默认值时重命名（保留 ID 与流水关联），旧“其他”分类归档。
+
+**预算记录（v3）：** 每个账本最多一条，`budget_<bookId>`；`cycle` 为 `YEAR`/`QUARTER`/`MONTH`，唯一索引 `idx_budget_book`。设置一次后按周期自动重复，不再按月保存；其他周期金额由 `BudgetCycleUtil` 自动折算。
 
 **DAO 方法与语义：**
 
@@ -687,22 +699,26 @@ fun showSnack(message: String, action: SnackAction? = null, durationMs: Long = 5
 
 ### T12 · 预算页
 
-**目标：** 月度总预算、账本预算、进度、剩余、每天可用。
+**目标：** 年/季/月预算、账本预算、进度、剩余、每天可用；预算设置一次后自动重复，页面不再提供月份切换。
 
 | 子任务 | 内容与产出 | 验收 |
 |---|---|---|
-| T12.1 | `BudgetService`：合计、已用、剩余、每天可用、超支 | 手工计算一致 |
-| T12.2 | `BudgetScreen` + `BudgetSummary` 三列 | 与 `07/08` 对齐 |
-| T12.3 | `MainBudgetCard` + `RingProgress`（116dp，stroke 11） | 环百分比正确 |
-| T12.4 | `BudgetBookRow`、`UnsetBudgetCard`、空状态 | 无预算/未设置态 |
-| T12.5 | `BudgetEditDialog`：设置/清空本月预算；月份切换 | 写入后即时刷新 |
-| T12.6 | 隐藏金额测试 | 进度/数字一起隐藏 |
+| T12.1 | `BudgetService` + `BudgetCycleUtil`：每账本单周期、周期区间、月折算、合计、已用、剩余、每天可用、超支 | 手工计算一致 |
+| T12.2 | `BudgetScreen`：去掉顶部合计摘要与月份切换；单张预算卡左右切换已设预算账本 | 无月份切换、无跨账本合计；默认账本有预算时优先展示 |
+| T12.3 | `MainBudgetCard` + `RingProgress`（116dp，stroke 11）；卡片标注年度/季度/月度预算 | 环百分比正确 |
+| T12.4 | `BudgetBookRow`、`UnsetBudgetCard`、空状态；每行展示账本自身周期 | 无预算/未设置态 |
+| T12.5 | `BudgetEditDialog`：选择年/季/月周期 + 金额，设置/清空；切换周期即时折算 | 写入后即时刷新 |
+| T12.6 | 隐藏金额与迁移测试 | 进度/数字一起隐藏；v2 按月预算正确迁移 |
 
-**口径：**
+**口径（2026-11-28 起）：**
 
-- 合计 = 所有“已设预算、未归档”账本之和；
-- 未设预算不计入；
-- 每天可用 = `max(0, (budget - spent) / 本月剩余天数)`（含今天）；
+- 一个账本只能设置年、季、月其中一个周期，不能同时设置多个；
+- 设置后自动按周期重复，切换月份/季度/年份无需重设；
+- 各账本按自身周期统计当前周期已用与剩余（年度看本年、季度看本季、月度看本月）；
+- 不做跨账本合并计算，页面不显示“预算合计 / 已用 / 剩余”三列摘要；
+- 多个账本已设预算时，预算卡支持左右切换；默认账本有预算则优先展示，否则展示第一个已设预算账本；
+- 未设预算的账本单独列入“待设置预算”；
+- 每天可用 = `max(0, 剩余) / 当前周期剩余天数`（含今天）；
 - 超支：剩余为负、环变红；
 - 隐藏金额：金额、进度填充、百分比一起隐藏，轨道保留。
 
@@ -867,21 +883,22 @@ date,time,type,book,group,category,amount,note,id
 
 ### T21 · 备份与恢复
 
-**目标：** 导出/导入 `MOREMONEY_BACKUP` schemaVersion=2，只处理普通账本；支持覆盖恢复与回滚。
+**目标：** 导出/导入 `MOREMONEY_BACKUP` schemaVersion=3，只处理普通账本；支持覆盖恢复与回滚。
 
 | 子任务 | 内容与产出 | 验收 |
 |---|---|---|
-| T21.1 | 复用 `BackupFormat`；确认 `format=1`、`schemaVersion=2`、校验和；兼容读取 v1 旧备份；不解析/不生成 `PRIVATE` 加密内容 | 单测 |
+| T21.1 | 复用 `BackupFormat`；确认 `format=1`、`schemaVersion=3`、校验和；兼容读取 v1/v2 旧备份；不解析/不生成 `PRIVATE` 加密内容 | 单测 |
 | T21.2 | `BackupService.export`：查询全表 → Base64/Tab 行 → 校验和 → SAF 保存；`BOOK` 第 5–8 列写 `0`/空/空/`10000` 占位 | 文件可由本项目恢复且计数一致 |
 | T21.3 | `BackupService.previewRestore`：校验头/版本/校验和/计数；统计 `is_private=1` 的账本与 `PRIVATE` 行数量 | 损坏拒绝，跳过项可见 |
 | T21.4 | 恢复确认 + 事务清空/写入 + 失败回滚；跳过私密账本、`PRIVATE` 行及其引用的流水/预算；缺默认账本时取 `sort` 最小者 | 原数据保留，跳过有提示 |
 | T21.5 | 测试：普通导出→恢复→数量/金额一致；混合备份跳过私密账本；篡改校验和拒绝 | instrumentation |
 
-**备份包格式（Android 独立版 schemaVersion=2）：**
+**备份包格式（Android 独立版 schemaVersion=3）：**
 
 - 所有字符串字段 Base64（UTF-8）；数字十进制；
 - 不再生成 `MEMBER` 行；`TXN` 行 9 列；`BOOK` 行仍为 13 列（第 5–8 列 `0`/空/空/`10000`）；不生成 `PRIVATE`；
-- 兼容读取 `schemaVersion=1`：忽略 `MEMBER` 行与 TXN 的 member 列；
+- `BUDGET` 行 5 列：`id`、`book_id`、`cycle`（`YEAR`/`QUARTER`/`MONTH`）、`amount_cents`、`updated_at`；每个账本最多一行；
+- 兼容读取 `schemaVersion=1/2`：忽略 `MEMBER` 行与 TXN 的 member 列；旧 BUDGET 第 3 列按月份处理为 `MONTH`，同一账本多条时保留 `updated_at` 最新一条；
 - `checksum = SHA-256([BODY] 与 [END] 之间的文本, UTF-8)`，小写 hex；校验覆盖整个 body，包括被跳过的私密行；
 - 恢复时清空 `book/category_group/category/txn/budget`，不要清 `app_meta`；
 - `BOOK` 行 `is_private=1` 的账本跳过；`PRIVATE` 行跳过；引用被跳过账本的 `TXN` / `BUDGET` 行也跳过；
@@ -896,7 +913,7 @@ date,time,type,book,group,category,amount,note,id
 
 | 子任务 | 内容与产出 | 验收 |
 |---|---|---|
-| T22.1 | `SettingsScreen`：备份状态卡、数据/通用分组、周起始日、外观只读、关于 | 与设计一致 |
+| T22.1 | `SettingsScreen`：备份状态卡、数据/通用分组、周起始日、外观切换（跟随系统/浅色/深色）、关于 | 与设计一致 |
 | T22.2 | `DataBackupScreen`：备份状态、立即备份、恢复、CSV 导入导出入口 | 入口可用 |
 | T22.3 | 数据统计卡：账本/分类/流水数量与数据库一致 | 查询正确 |
 | T22.4 | 测试：设置持久化、关于版本号、空备份状态 | instrumentation |
@@ -904,7 +921,7 @@ date,time,type,book,group,category,amount,note,id
 **设置项：**
 
 - 周起始日：周一/周日，写入 `SettingsService.weekStart`；
-- 外观：固定“跟随系统”，不提供手动切换；
+- 外观：跟随系统/浅色/深色，默认跟随系统，写入 `SettingsService.themeMode`；
 - 版本号：`BuildConfig.VERSION_NAME` 或 `PackageManager`；
 - 隐私说明：本地文案，说明完全离线、无网络权限、无私密账本。
 

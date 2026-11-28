@@ -3,6 +3,7 @@ package com.github.ppg007.moremoney.debug
 import com.github.ppg007.moremoney.AppContainer
 import com.github.ppg007.moremoney.data.db.entity.BookEntity
 import com.github.ppg007.moremoney.data.db.entity.TxnEntity
+import com.github.ppg007.moremoney.models.BudgetCycle
 import com.github.ppg007.moremoney.ui.theme.SeedColors
 import com.github.ppg007.moremoney.util.DateUtil
 
@@ -30,8 +31,8 @@ object DebugSeedService {
         updatedAt = now,
       )
     )
-    container.budgetRepository.upsert("book_daily", monthKey, 500_000)
-    container.budgetRepository.upsert("book_travel", monthKey, 200_000)
+    container.budgetRepository.upsert("book_daily", BudgetCycle.MONTH, 500_000)
+    container.budgetRepository.upsert("book_travel", BudgetCycle.QUARTER, 600_000)
 
     val categories = container.categoryRepository.list().filter { !it.archived }
     if (categories.isEmpty()) {

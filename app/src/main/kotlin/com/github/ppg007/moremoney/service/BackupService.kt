@@ -12,6 +12,7 @@ import com.github.ppg007.moremoney.data.repository.BookRepository
 import com.github.ppg007.moremoney.data.repository.BudgetRepository
 import com.github.ppg007.moremoney.data.repository.CategoryRepository
 import com.github.ppg007.moremoney.data.repository.TxnRepository
+import com.github.ppg007.moremoney.models.BudgetCycle
 import com.github.ppg007.moremoney.state.SettingsService
 import java.security.MessageDigest
 import java.util.Base64
@@ -116,7 +117,7 @@ class BackupService(
         BackupLine(
           type = "BUDGET",
           cells = listOf(
-            enc(budget.id), enc(budget.bookId), enc(budget.period),
+            enc(budget.id), enc(budget.bookId), enc(budget.cycle.name),
             budget.amountCents.toString(), budget.updatedAt.toString(),
           ),
         )
@@ -181,7 +182,8 @@ class BackupService(
     val groups = ArrayList<CategoryGroupEntity>()
     val categories = ArrayList<CategoryEntity>()
     val txns = ArrayList<TxnEntity>()
-    val budgets = ArrayList<BudgetEntity>()
+    // 新模型每个账本只保留一条预算；旧备份按月可能有多条，取 updatedAt 最新的一条。
+    val budgetByBook = LinkedHashMap<String, BudgetEntity>()
     val skippedBookIds = HashSet<String>()
     var skippedPrivateBooks = 0
     var skippedPrivateRows = 0
@@ -213,8 +215,11 @@ class BackupService(
         }
         line.type == "BUDGET" && line.cells.size >= 5 -> {
           val budget = readBudget(line)
-          if (budget.bookId !in skippedBookIds) {
-            budgets.add(budget)
+          if (budget.bookId !in skippedBookIds && budget.amountCents > 0) {
+            val previous = budgetByBook[budget.bookId]
+            if (previous == null || budget.updatedAt >= previous.updatedAt) {
+              budgetByBook[budget.bookId] = budget
+            }
           }
         }
         !BackupFormat.isKnownType(line.type) -> Unit
@@ -246,7 +251,7 @@ class BackupService(
       for (txn in txns) {
         db.txnDao().insert(txn.copy(deletedAt = null))
       }
-      for (budget in budgets) {
+      for (budget in budgetByBook.values) {
         db.budgetDao().upsert(budget)
       }
     }
@@ -320,14 +325,20 @@ class BackupService(
     )
   }
 
-  private fun readBudget(line: BackupLine): BudgetEntity =
-    BudgetEntity(
+  private fun readBudget(line: BackupLine): BudgetEntity {
+    val rawCycle = dec(line.cells[2])
+    // schemaVersion<=2 的旧备份第 3 列是月份（如 2026-11），按月度预算读取。
+    val cycle =
+      BudgetCycle.entries.firstOrNull { it.name == rawCycle.uppercase() }
+        ?: BudgetCycle.MONTH
+    return BudgetEntity(
       id = dec(line.cells[0]),
       bookId = dec(line.cells[1]),
-      period = dec(line.cells[2]),
+      cycle = cycle,
       amountCents = line.cells[3].toLongOrNull() ?: 0,
       updatedAt = line.cells[4].toLongOrNull() ?: 0,
     )
+  }
 
   private fun enc(text: String): String = Base64.getEncoder().encodeToString(text.toByteArray(Charsets.UTF_8))
 

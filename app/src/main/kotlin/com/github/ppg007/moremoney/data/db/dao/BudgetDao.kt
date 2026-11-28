@@ -12,14 +12,11 @@ interface BudgetDao {
   @Query("SELECT * FROM budget ORDER BY updated_at DESC")
   fun observeAll(): Flow<List<BudgetEntity>>
 
-  @Query("SELECT * FROM budget WHERE book_id = :bookId AND period = :period LIMIT 1")
-  suspend fun get(bookId: String, period: String): BudgetEntity?
+  @Query("SELECT * FROM budget WHERE book_id = :bookId LIMIT 1")
+  suspend fun get(bookId: String): BudgetEntity?
 
-  @Query("SELECT * FROM budget WHERE period = :period ORDER BY updated_at DESC")
-  suspend fun listByPeriod(period: String): List<BudgetEntity>
-
-  @Query("SELECT * FROM budget WHERE period = :period ORDER BY updated_at DESC")
-  fun observeByPeriod(period: String): Flow<List<BudgetEntity>>
+  @Query("SELECT * FROM budget WHERE book_id = :bookId LIMIT 1")
+  fun observeByBook(bookId: String): Flow<BudgetEntity?>
 
   @Query("SELECT * FROM budget")
   suspend fun listAll(): List<BudgetEntity>
@@ -27,8 +24,8 @@ interface BudgetDao {
   @Insert(onConflict = OnConflictStrategy.REPLACE)
   suspend fun upsert(budget: BudgetEntity)
 
-  @Query("DELETE FROM budget WHERE book_id = :bookId AND period = :period")
-  suspend fun remove(bookId: String, period: String)
+  @Query("DELETE FROM budget WHERE book_id = :bookId")
+  suspend fun remove(bookId: String)
 
   @Query("DELETE FROM budget")
   suspend fun deleteAll()

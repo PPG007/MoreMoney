@@ -54,3 +54,50 @@ val MIGRATION_1_2 =
       db.execSQL("INSERT OR REPLACE INTO `app_meta` (`key`, `value`) VALUES ('schema_version', '2')")
     }
   }
+
+/**
+ * v2 → v3：预算改为“一个账本一条配置”。
+ *
+ * - 重建 `budget` 表，用 `cycle` 替代 `period`，唯一索引改为 `book_id`；
+ * - 旧数据按月预算处理：同一账本有多条时，保留 `updated_at` 最新的一条；
+ * - 设置后由应用按周期自动重复与折算，不再逐月保存。
+ */
+val MIGRATION_2_3 =
+  object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+      // 部分唯一索引不在 Room schema JSON 中，迁移校验前先移除，onOpen 会重新创建。
+      db.execSQL("DROP INDEX IF EXISTS `idx_book_default`")
+
+      db.execSQL(
+        """
+        CREATE TABLE IF NOT EXISTS `budget_new` (
+          `id` TEXT NOT NULL,
+          `book_id` TEXT NOT NULL,
+          `cycle` TEXT NOT NULL,
+          `amount_cents` INTEGER NOT NULL,
+          `updated_at` INTEGER NOT NULL,
+          PRIMARY KEY(`id`)
+        )
+        """.trimIndent()
+      )
+      db.execSQL(
+        """
+        INSERT INTO `budget_new` (`id`, `book_id`, `cycle`, `amount_cents`, `updated_at`)
+        SELECT b.`id`, b.`book_id`, 'MONTH', b.`amount_cents`, b.`updated_at`
+        FROM `budget` b
+        WHERE b.`amount_cents` > 0
+          AND b.`id` = (
+            SELECT b2.`id` FROM `budget` b2
+            WHERE b2.`book_id` = b.`book_id` AND b2.`amount_cents` > 0
+            ORDER BY b2.`updated_at` DESC, b2.`period` DESC, b2.`id` DESC
+            LIMIT 1
+          )
+        """.trimIndent()
+      )
+      db.execSQL("DROP TABLE `budget`")
+      db.execSQL("ALTER TABLE `budget_new` RENAME TO `budget`")
+      db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `idx_budget_book` ON `budget` (`book_id`)")
+
+      db.execSQL("INSERT OR REPLACE INTO `app_meta` (`key`, `value`) VALUES ('schema_version', '3')")
+    }
+  }

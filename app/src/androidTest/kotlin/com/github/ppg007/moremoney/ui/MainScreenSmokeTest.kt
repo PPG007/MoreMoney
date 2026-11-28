@@ -14,8 +14,11 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.ppg007.moremoney.MainActivity
 import com.github.ppg007.moremoney.MoreMoneyApp
+import com.github.ppg007.moremoney.models.BudgetCycle
+import com.github.ppg007.moremoney.state.ThemeMode
 import com.github.ppg007.moremoney.util.DateUtil
 import kotlinx.coroutines.runBlocking
+import org.junit.After
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -38,6 +41,20 @@ class MainScreenSmokeTest {
     app.container.ui.updateHideAmount(false)
   }
 
+  @After
+  fun resetThemeMode() {
+    ApplicationProvider.getApplicationContext<MoreMoneyApp>().container.settings.setThemeMode(ThemeMode.SYSTEM)
+  }
+
+  @After
+  fun resetBudgets() =
+    runBlocking {
+      val container = ApplicationProvider.getApplicationContext<MoreMoneyApp>().container
+      listOf("book_daily", "book_travel", "book_repair").forEach {
+        container.budgetRepository.remove(it)
+      }
+    }
+
   @Test
   fun fourTabsAreVisibleAndSwitch() {
     composeRule.waitUntil(10_000) {
@@ -50,7 +67,7 @@ class MainScreenSmokeTest {
 
     composeRule.onNodeWithTag("tab_budget").performClick()
     composeRule.waitUntil(5_000) {
-      composeRule.onAllNodesWithText("预算合计").fetchSemanticsNodes().isNotEmpty()
+      composeRule.onAllNodesWithTag("budget_screen").fetchSemanticsNodes().isNotEmpty()
     }
 
     composeRule.onNodeWithTag("tab_charts").performClick()
@@ -64,6 +81,54 @@ class MainScreenSmokeTest {
     }
     composeRule.onNodeWithTag("tab_ledger").performClick()
   }
+
+  @Test
+  fun appearanceSettingOpensSheetAndSwitchesTheme() {
+    composeRule.waitUntil(10_000) {
+      composeRule.onAllNodesWithTag("tab_settings").fetchSemanticsNodes().isNotEmpty()
+    }
+    composeRule.onNodeWithTag("tab_settings").performClick()
+    composeRule.waitUntil(5_000) {
+      composeRule.onAllNodesWithTag("settings_theme").fetchSemanticsNodes().isNotEmpty()
+    }
+    composeRule.onNodeWithTag("settings_theme").performClick()
+    composeRule.waitUntil(5_000) {
+      composeRule.onAllNodesWithTag("theme_option_DARK").fetchSemanticsNodes().isNotEmpty()
+    }
+    composeRule.onNodeWithTag("theme_option_DARK").performClick()
+
+    val app = ApplicationProvider.getApplicationContext<MoreMoneyApp>()
+    composeRule.waitUntil(5_000) { app.container.settings.themeMode() == ThemeMode.DARK }
+  }
+
+  @Test
+  fun budgetCardSwitchesBetweenBudgetedBooks() =
+    runBlocking {
+      val container = ApplicationProvider.getApplicationContext<MoreMoneyApp>().container
+      container.budgetRepository.upsert("book_daily", BudgetCycle.MONTH, 500_000)
+      container.budgetRepository.upsert("book_travel", BudgetCycle.QUARTER, 600_000)
+
+      composeRule.waitUntil(10_000) {
+        composeRule.onAllNodesWithTag("tab_budget").fetchSemanticsNodes().isNotEmpty()
+      }
+      composeRule.onNodeWithTag("tab_budget").performClick()
+      composeRule.waitUntil(5_000) {
+        composeRule.onAllNodesWithText("日常账本").fetchSemanticsNodes().isNotEmpty()
+      }
+      // 默认账本（book_daily）有预算时优先展示。
+      composeRule.onNodeWithText("日常账本").assertIsDisplayed()
+
+      composeRule.onNodeWithTag("budget_next").performClick()
+      composeRule.waitUntil(5_000) {
+        composeRule.onAllNodesWithText("旅行").fetchSemanticsNodes().isNotEmpty()
+      }
+      composeRule.onNodeWithText("旅行").assertIsDisplayed()
+
+      composeRule.onNodeWithTag("budget_prev").performClick()
+      composeRule.waitUntil(5_000) {
+        composeRule.onAllNodesWithText("日常账本").fetchSemanticsNodes().isNotEmpty()
+      }
+    }
 
   @Test
   fun hideAmountBlursAllAmounts() {

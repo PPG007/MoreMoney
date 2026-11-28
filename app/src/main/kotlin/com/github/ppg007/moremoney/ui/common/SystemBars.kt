@@ -5,16 +5,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+import com.github.ppg007.moremoney.ui.theme.isDarkTheme
 
 /**
  * 状态栏/导航栏图标明暗。
  *
- * @param darkIcons true 表示深色图标（浅色背景），false 表示白色图标（首页 Hero）。
+ * @param darkIcons true 表示深色图标（浅色背景），false 表示白色图标（深色背景）。
  *
- * 首页 Hero 覆盖状态栏，必须使用白色图标；其他一级页与所有二级页使用深色图标。
+ * 默认跟随当前主题：浅色主题用深色图标，深色主题用白色图标。
+ * 首页 Hero 覆盖状态栏，固定使用白色图标。
  */
 @Composable
-fun SystemBarAppearance(darkIcons: Boolean) {
+fun SystemBarAppearance(darkIcons: Boolean = !isDarkTheme()) {
   val view = LocalView.current
   if (view.isInEditMode) {
     return

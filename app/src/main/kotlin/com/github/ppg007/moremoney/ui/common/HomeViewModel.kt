@@ -7,6 +7,7 @@ import com.github.ppg007.moremoney.data.db.entity.BookEntity
 import com.github.ppg007.moremoney.data.db.entity.BudgetEntity
 import com.github.ppg007.moremoney.data.db.entity.CategoryEntity
 import com.github.ppg007.moremoney.data.db.entity.TxnEntity
+import com.github.ppg007.moremoney.service.BudgetCycleUtil
 import com.github.ppg007.moremoney.service.PeriodResolver
 import com.github.ppg007.moremoney.ui.theme.SeedColors
 import com.github.ppg007.moremoney.util.DateUtil
@@ -122,9 +123,10 @@ class HomeViewModel(private val container: AppContainer) : ViewModel() {
       }
     }
     val spent = filteredTxns.sumOf { it.amountCents }
-    val monthBudgets = data.budgets.filter { it.period == month && it.bookId in selectedIds && it.amountCents > 0 }
-    val budgetTotal = monthBudgets.sumOf { it.amountCents }
-    val hasBudget = monthBudgets.isNotEmpty()
+    // 预算设置一次后按周期重复；首页按月统计，统一折算为月预算。
+    val budgets = data.budgets.filter { it.bookId in selectedIds && it.amountCents > 0 }
+    val budgetTotal = budgets.sumOf { BudgetCycleUtil.monthlyCents(it.cycle, it.amountCents) }
+    val hasBudget = budgets.isNotEmpty()
     val perDay =
       if (!hasBudget) {
         0

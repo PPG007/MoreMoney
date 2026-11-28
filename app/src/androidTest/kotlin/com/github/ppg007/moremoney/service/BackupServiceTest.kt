@@ -79,7 +79,7 @@ class BackupServiceTest {
       val export = service.buildExport(now)
       assertTrue(export.text.startsWith(BackupFormat.MAGIC))
       assertTrue(export.text.contains("format=1"))
-      assertTrue(export.text.contains("schemaVersion=2"))
+      assertTrue(export.text.contains("schemaVersion=3"))
       assertFalse(export.text.contains("\nPRIVATE\t"))
       assertFalse(export.text.contains("\nMEMBER\t"))
       assertFalse(export.text.contains("members="))
@@ -175,7 +175,7 @@ class BackupServiceTest {
       // 故意构造 v1 旧备份：MEMBER 行与 10 列 TXN 都应被兼容读取并忽略成员。
       val text =
         BackupFormat.wrap(body, checksum, counts, now, "1.0.0")
-          .replace("schemaVersion=2", "schemaVersion=1")
+          .replace("schemaVersion=3", "schemaVersion=1")
 
       val doc = service.parseAndVerify(text)
       val summary = service.summary(doc)

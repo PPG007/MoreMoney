@@ -29,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -37,6 +38,7 @@ import com.github.ppg007.moremoney.BuildConfig
 import com.github.ppg007.moremoney.R
 import com.github.ppg007.moremoney.appContainer
 import com.github.ppg007.moremoney.state.AppUiState
+import com.github.ppg007.moremoney.state.ThemeMode
 import com.github.ppg007.moremoney.ui.common.SystemBarAppearance
 import com.github.ppg007.moremoney.ui.components.base.AppBottomSheet
 import com.github.ppg007.moremoney.ui.components.base.CardColumn
@@ -55,7 +57,7 @@ import com.github.ppg007.moremoney.util.DateUtil
 /**
  * 一级 Tab“设置”：备份状态、数据入口、周起始日、外观、关于。
  *
- * 不提供私密账本入口；外观固定“跟随系统”。
+ * 不提供私密账本入口；外观支持跟随系统 / 浅色 / 深色。
  */
 @Composable
 fun SettingsScreen(
@@ -71,8 +73,9 @@ fun SettingsScreen(
   val books by container.bookRepository.observeAll().collectAsStateWithLifecycle(emptyList())
   val categories by container.categoryRepository.observeAll().collectAsStateWithLifecycle(emptyList())
   var showWeekStart by remember { mutableStateOf(false) }
+  var showTheme by remember { mutableStateOf(false) }
 
-  SystemBarAppearance(darkIcons = true)
+  SystemBarAppearance()
 
   Column(
     modifier =
@@ -188,10 +191,18 @@ fun SettingsScreen(
       DividerLine()
       ListRow(
         title = "外观",
-        subtitle = "跟随系统深色 / 浅色",
+        subtitle = "深色 / 浅色主题",
         iconRes = R.drawable.ic_eye,
+        modifier = Modifier.testTag("settings_theme"),
+        onClick = { showTheme = true },
         trailing = {
-          Text(text = "跟随系统", style = MoreMoneyTextStyles.settingsTitle, color = colors.ink2)
+          Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+          ) {
+            Text(text = settings.themeMode.label(), style = MoreMoneyTextStyles.settingsTitle, color = colors.ink2)
+            Chevron()
+          }
         },
       )
       DividerLine()
@@ -243,7 +254,56 @@ fun SettingsScreen(
       }
     }
   }
+
+  if (showTheme) {
+    AppBottomSheet(onDismiss = { showTheme = false }) {
+      SheetTitle(title = "外观")
+      ThemeMode.entries.forEach { mode ->
+        Row(
+          modifier =
+            Modifier
+              .fillMaxWidth()
+              .testTag("theme_option_${mode.name}")
+              .clip(RoundedCornerShape(Radius.chip))
+              .background(if (settings.themeMode == mode) colors.brandWash else colors.surface)
+              .clickable {
+                container.settings.setThemeMode(mode)
+                showTheme = false
+              }
+              .padding(horizontal = 12.dp, vertical = 12.dp),
+          verticalAlignment = Alignment.CenterVertically,
+        ) {
+          Column(modifier = Modifier.weight(1f)) {
+            Text(text = mode.label(), style = MoreMoneyTextStyles.settingsTitle, color = colors.ink)
+            Text(text = mode.description(), style = MoreMoneyTextStyles.caption, color = colors.ink3)
+          }
+          if (settings.themeMode == mode) {
+            Icon(
+              painter = painterResource(R.drawable.ic_check),
+              contentDescription = null,
+              tint = colors.brandInk,
+              modifier = Modifier.size(16.dp),
+            )
+          }
+        }
+      }
+    }
+  }
 }
+
+private fun ThemeMode.label(): String =
+  when (this) {
+    ThemeMode.SYSTEM -> "跟随系统"
+    ThemeMode.LIGHT -> "浅色"
+    ThemeMode.DARK -> "深色"
+  }
+
+private fun ThemeMode.description(): String =
+  when (this) {
+    ThemeMode.SYSTEM -> "随系统深色模式自动切换"
+    ThemeMode.LIGHT -> "始终使用浅色主题"
+    ThemeMode.DARK -> "始终使用深色主题"
+  }
 
 @Composable
 private fun GroupLabel(text: String) {

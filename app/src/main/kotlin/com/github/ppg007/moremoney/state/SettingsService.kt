@@ -5,12 +5,15 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
+enum class ThemeMode { SYSTEM, LIGHT, DARK }
+
 data class SettingsState(
   val defaultBookId: String = "",
   val weekStart: Int = 1,
   val lastBackupAt: Long = 0,
   val lastBackupName: String = "",
   val screenPrivacy: Boolean = false,
+  val themeMode: ThemeMode = ThemeMode.SYSTEM,
 )
 
 /**
@@ -27,6 +30,7 @@ class SettingsService(context: Context) {
     const val KEY_LAST_BACKUP_AT = "last_backup_at"
     const val KEY_LAST_BACKUP_NAME = "last_backup_name"
     const val KEY_SCREEN_PRIVACY = "screen_privacy"
+    const val KEY_THEME_MODE = "theme_mode"
   }
 
   private val prefs = context.getSharedPreferences(STORE_NAME, Context.MODE_PRIVATE)
@@ -41,6 +45,10 @@ class SettingsService(context: Context) {
       lastBackupAt = prefs.getLong(KEY_LAST_BACKUP_AT, 0),
       lastBackupName = prefs.getString(KEY_LAST_BACKUP_NAME, "").orEmpty(),
       screenPrivacy = prefs.getBoolean(KEY_SCREEN_PRIVACY, false),
+      themeMode =
+        prefs.getString(KEY_THEME_MODE, null)
+          ?.let { raw -> ThemeMode.entries.firstOrNull { it.name == raw } }
+          ?: ThemeMode.SYSTEM,
     )
   }
 
@@ -77,5 +85,12 @@ class SettingsService(context: Context) {
   fun setScreenPrivacy(value: Boolean) {
     prefs.edit().putBoolean(KEY_SCREEN_PRIVACY, value).apply()
     update { it.copy(screenPrivacy = value) }
+  }
+
+  fun themeMode(): ThemeMode = _state.value.themeMode
+
+  fun setThemeMode(value: ThemeMode) {
+    prefs.edit().putString(KEY_THEME_MODE, value.name).apply()
+    update { it.copy(themeMode = value) }
   }
 }

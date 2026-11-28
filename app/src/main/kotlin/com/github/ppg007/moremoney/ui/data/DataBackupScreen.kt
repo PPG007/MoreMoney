@@ -97,7 +97,7 @@ fun DataBackupScreen(onBack: () -> Unit) {
   var pendingRestoreText by remember { mutableStateOf("") }
   var showTemplate by remember { mutableStateOf(false) }
 
-  SystemBarAppearance(darkIcons = true)
+  SystemBarAppearance()
 
   val backupLauncher =
     rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri ->

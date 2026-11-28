@@ -97,7 +97,7 @@ fun CategoryManageScreen(onBack: () -> Unit) {
       .sortedWith(compareByDescending<CategoryEntity> { usage[it.id] ?: 0 }.thenBy { it.pinyin }.thenBy { it.sort })
       .take(8)
 
-  SystemBarAppearance(darkIcons = true)
+  SystemBarAppearance()
 
   Column(modifier = Modifier.fillMaxSize().background(colors.background).navigationBarsPadding()) {
     PageHeader(title = "分类管理", onBack = onBack, trailing = { EyeButton(ui = container.ui) })

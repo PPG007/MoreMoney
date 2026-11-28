@@ -7,6 +7,7 @@
 - 任务编号沿用早期迁移计划，便于对照历史记录。
 - **2026-11-24 实现进度：** T00–T08、T10–T26 完成（T09 已删除、T13 已取消）。构建、58 个 JVM 单测、19 个 instrumentation（含 v1→v2 迁移测试）、Lint 0 error、Release（R8）构建与签名安装/升级/降级验证均通过；T25 验收见 `docs/tasks/T25-report.md`，发布文档见 `docs/release/`，暂停/续做快照见 `docs/tasks/PROGRESS-2026-11-23.md`，截图见 `docs/screenshots/`。
 - **2026-11-24 范围变更（重要）：** Android 版改为**独立应用**，不再要求与鸿蒙版互换数据；**移除成员管理**（UI、筛选、统计、CSV/备份字段、Room 表）。Room schema 升到 v2（保留流水迁移），CSV 改为 9 列（旧 10 列可导入并忽略成员列），备份 `schemaVersion=2`（可读取旧 v1 备份并忽略成员）。详见 §4。
+- **2026-11-28 预算改造：** Room schema 升到 v3；`budget` 改为每账本一条“周期 + 金额”（年/季/月，自动重复）；预算页移除月份切换与跨账本合计，改为单张预算卡左右切换账本（默认优先默认账本）；备份升到 `schemaVersion=3`，兼容 v1/v2。
 - **2026-11-23 复核：** 模拟器镜像与 AVD 已就绪；Room/KSP 兼容性已实测通过。复核证据见 `docs/tasks/dependency-check-2026-11-23.md`，子任务级拆分见 `docs/tasks/WBS.md`。
 - **2026-11-23 范围变更：** Android v1 **取消私密账本**（密码、生物识别、锁定、加密备份），只保留普通账本。T13 改为已取消；`book` 表不再包含 `is_private` / `pwd_hash` / `pwd_salt` / `pwd_iter`；备份不再生成 `PRIVATE` 段。详见 WBS 决策 D3 与 T21。
 
@@ -61,10 +62,10 @@ C 盘当前剩余约 **30 GB**，仍够用；不要同时保留多个旧模拟�
 **v1 功能已实现完毕，构建、测试与 Lint 全绿。** 当前代码包含：
 
 - 4 个一级 Tab（账本/预算/图表/设置）与 5 个二级页（记一笔、账本、分类、搜索、数据与备份）；
-- Room 数据层（6 表、6 DAO（含 StatsDao）、Repository、种子数据、部分唯一索引，schema v2）；
+- Room 数据层（6 表、6 DAO（含 StatsDao）、Repository、种子数据、部分唯一索引，schema v3）；
 - 金额/表达式/日期/拼音/CSV/备份纯逻辑与 58 个 JVM 单测；
 - Canvas 环形图、趋势图、日历热力；
-- CSV 导入导出、`MOREMONEY_BACKUP` schemaVersion=2 备份恢复（兼容旧 v1，跳过私密账本并提示）；
+- CSV 导入导出、`MOREMONEY_BACKUP` schemaVersion=3 备份恢复（兼容旧 v1/v2，跳过私密账本并提示）；
 - 全局金额隐藏、删除撤销、Snackbar、浅/深色主题、360dp 与横屏适配；
 - debug 演示数据与组件 Gallery；
 - 发布文档：`docs/release/`；T25 验收：`docs/tasks/T25-report.md`；质量门禁：`docs/tasks/quality-gate.md`。
@@ -96,7 +97,7 @@ assembleRelease ✅（R8；无 keystore.properties 时为 unsigned）
 | minSdk | 26（Android 8.0） |
 | JDK | 源码/字节码目标 17，Gradle 运行在 JDK 25 上 |
 | 导航 | Navigation 3（`androidx.navigation3`），二级页使用 `@Serializable NavKey` |
-| 数据 | Room 2.8.5 + KSP 2.3.14；Android 独立版 schema v2（无成员表、无 `member_id`），见 §4 |
+| 数据 | Room 2.8.5 + KSP 2.3.14；Android 独立版 schema v3（无成员表、无 `member_id`，预算每账本一条），见 §4 |
 | 图表 | Compose `Canvas` 自绘，不引入第三方图表库 |
 | 网络 | v1 完全离线，不申请 `INTERNET` 权限 |
 | 文件导入导出 | Storage Access Framework（`CreateDocument` / `OpenDocument`），不申请存储权限 |
@@ -112,20 +113,22 @@ assembleRelease ✅（R8；无 keystore.properties 时为 unsigned）
 
 ---
 
-## 4. Android 独立版数据约定（2026-11-24 起）
+## 4. Android 独立版数据约定（2026-11-24 起，2026-11-28 预算改造）
 
 Android v1 不再要求与鸿蒙版互换数据，数据格式以本仓库与测试为准：
 
-1. **Room schema v2**（`app/schemas/com.github.ppg007.moremoney.data.db.MoreMoneyDatabase/2.json`）：
+1. **Room schema v3**（`app/schemas/com.github.ppg007.moremoney.data.db.MoreMoneyDatabase/3.json`）：
    - 业务表：`book`、`category_group`、`category`、`txn`、`budget`、`app_meta`；
    - **无 `member` 表，`txn` 无 `member_id`**；
    - v1 → v2 迁移删除 `member` 表并重建 `txn`，保留全部流水、金额、日期、备注与软删状态；
+   - v2 → v3 迁移把按月的 `budget` 重建为每账本一条（`cycle` + 金额），同一账本保留 `updated_at` 最新的一条；
    - 金额列以 `*_cents` 结尾，全部为整数“分”；`day_key` 使用 `YYYY-MM-DD`。
-2. **备份**：保持 `MOREMONEY_BACKUP`、`format=1`；`schemaVersion=2`，不再生成 `MEMBER` 行，`TXN` 行 9 列，`BOOK` 行仍为 13 列（私密占位），不生成 `PRIVATE` 段；
-   - 仍可读取 `schemaVersion=1` 的旧备份：`MEMBER` 行与 TXN 的 member 列忽略，私密账本/`PRIVATE` 跳过。
-3. **CSV**：固定 9 列 `date,time,type,book,group,category,amount,note,id`；UTF-8 BOM、CRLF、金额两位小数；可导入旧 10 列文件（成员列忽略）。
-4. Android 不创建私密账本；恢复旧备份时跳过 `is_private=1` 的账本与 `PRIVATE` 行，并在预览中提示。
-5. 金额、表达式、日期、CSV、备份与统计以本项目 JVM 单测 + instrumentation 为规格；历史测试向量仅作回归数据来源。
+2. **预算**：一个账本只能设置年、季、月其中一个周期，设置后自动重复；其他周期金额自动折算，不再逐月保存。
+3. **备份**：保持 `MOREMONEY_BACKUP`、`format=1`；`schemaVersion=3`，不再生成 `MEMBER` 行，`TXN` 行 9 列，`BOOK` 行仍为 13 列（私密占位），不生成 `PRIVATE` 段；
+   - `BUDGET` 行第 3 列为 `cycle`；仍可读取 `schemaVersion=1/2` 的旧备份：`MEMBER` 行与 TXN 的 member 列忽略，旧月份字段按月度预算处理，私密账本/`PRIVATE` 跳过。
+4. **CSV**：固定 9 列 `date,time,type,book,group,category,amount,note,id`；UTF-8 BOM、CRLF、金额两位小数；可导入旧 10 列文件（成员列忽略）。
+5. Android 不创建私密账本；恢复旧备份时跳过 `is_private=1` 的账本与 `PRIVATE` 行，并在预览中提示。
+6. 金额、表达式、日期、CSV、备份与统计以本项目 JVM 单测 + instrumentation 为规格；历史测试向量仅作回归数据来源。
 
 ---
 
@@ -288,9 +291,9 @@ T26 最后执行。
 
 ### T12 预算页
 
-- 目标：月度总预算、账本预算、进度、剩余、每天可用。
+- 目标：年/季/月预算、账本预算、进度、剩余、每天可用；预算设置一次后自动重复。
 - 参考：`pages/budget/*`、`BudgetService.ets`、`BudgetDao.ets`。
-- 验收：预算为 0/未设置状态；超支状态；切换月份；金额隐藏时进度条与数字一起隐藏。
+- 验收：预算为 0/未设置状态；超支状态；预算页无月份切换、无跨账本合计；各账本按自身周期展示；多账本有预算时可左右切换且默认展示默认账本；金额隐藏时进度条与数字一起隐藏。
 
 ### T13 私密账本（已取消）
 
@@ -335,7 +338,7 @@ T26 最后执行。
 
 - 目标：导出/导入 `MOREMONEY_BACKUP`，只处理普通账本。
 - 验收：
-  - `schemaVersion=2` 备份可在本项目完整导出/恢复；可读取 `schemaVersion=1` 旧备份并忽略成员字段；
+  - `schemaVersion=3` 备份可在本项目完整导出/恢复；可读取 `schemaVersion=1/2` 旧备份并忽略成员字段，旧预算按月度处理；
   - SHA-256 校验和正确；不生成 `MEMBER` 行与 `PRIVATE` 段；
   - `BOOK` 行第 5–8 列写 `0`、空、空、`10000` 占位，保持普通备份格式；
   - 恢复含私密账本的旧备份时，跳过 `is_private=1` 的账本与 `PRIVATE` 行，并在预览中提示跳过数量；

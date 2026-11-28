@@ -72,11 +72,12 @@ private val MoreMoneyShapes =
   )
 
 private val LocalMoreMoneyColors = staticCompositionLocalOf { LightMoreMoneyColors }
+private val LocalDarkTheme = staticCompositionLocalOf { false }
 
-/** 当前是否深色主题；用于图表色等无法从 ColorScheme 推导的 token。 */
+/** 当前是否深色主题；由根节点传入的实际主题决定，而非仅系统设置。 */
 @Composable
 @ReadOnlyComposable
-fun isDarkTheme(): Boolean = isSystemInDarkTheme()
+fun isDarkTheme(): Boolean = LocalDarkTheme.current
 
 /** 访问设计 token：`MoreMoneyTheme.colors.brand`。 */
 object MoreMoneyTheme {
@@ -93,7 +94,10 @@ fun MoreMoneyTheme(
 ) {
   val colors = if (darkTheme) DarkMoreMoneyColors else LightMoreMoneyColors
 
-  CompositionLocalProvider(LocalMoreMoneyColors provides colors) {
+  CompositionLocalProvider(
+    LocalMoreMoneyColors provides colors,
+    LocalDarkTheme provides darkTheme,
+  ) {
     MaterialTheme(
       colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme,
       typography = MoreMoneyTypography,

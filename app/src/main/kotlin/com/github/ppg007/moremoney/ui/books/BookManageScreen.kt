@@ -40,6 +40,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.ppg007.moremoney.R
 import com.github.ppg007.moremoney.appContainer
 import com.github.ppg007.moremoney.data.db.entity.BookEntity
+import com.github.ppg007.moremoney.models.BudgetCycle
+import com.github.ppg007.moremoney.service.BudgetCycleUtil
 import com.github.ppg007.moremoney.ui.budget.BudgetEditDialog
 import com.github.ppg007.moremoney.ui.common.SystemBarAppearance
 import com.github.ppg007.moremoney.ui.components.BookIconNames
@@ -92,7 +94,7 @@ fun BookManageScreen(onBack: () -> Unit) {
   var budgetBook by remember { mutableStateOf<BookEntity?>(null) }
   var deletingBook by remember { mutableStateOf<BookEntity?>(null) }
 
-  SystemBarAppearance(darkIcons = true)
+  SystemBarAppearance()
 
   Column(modifier = Modifier.fillMaxSize().background(colors.background).navigationBarsPadding()) {
     PageHeader(
@@ -109,14 +111,27 @@ fun BookManageScreen(onBack: () -> Unit) {
       verticalArrangement = Arrangement.spacedBy(Spacing.x3),
     ) {
       active.forEach { book ->
-        val budget = budgets.firstOrNull { it.bookId == book.id && it.period == monthKey && it.amountCents > 0 }
-        val spent = txns.filter { it.bookId == book.id && it.dayKey.startsWith(monthKey) }.sumOf { it.amountCents }
-        val count = txns.count { it.bookId == book.id && it.dayKey.startsWith(monthKey) }
+        val budget = budgets.firstOrNull { it.bookId == book.id && it.amountCents > 0 }
+        val range = budget?.let { BudgetCycleUtil.range(it.cycle) }
+        val count =
+          if (range == null) {
+            txns.count { it.bookId == book.id && it.dayKey.startsWith(monthKey) }
+          } else {
+            txns.count { it.bookId == book.id && it.occurredAt in range.startMs..range.endMs }
+          }
+        val spent =
+          if (range == null) {
+            0L
+          } else {
+            txns.filter { it.bookId == book.id && it.occurredAt in range.startMs..range.endMs }
+              .sumOf { it.amountCents }
+          }
         BookCard(
           book = book,
           budgetCents = budget?.amountCents ?: 0,
+          cycle = budget?.cycle,
           spentCents = spent,
-          monthCount = count,
+          count = count,
           hidden = container.ui.hideAmount,
           onClick = { actionBook = book },
           onSetBudget = { budgetBook = book },
@@ -223,7 +238,7 @@ fun BookManageScreen(onBack: () -> Unit) {
         actionBook = null
         editingBook = book
       }
-      ActionRow("设置本月预算") {
+      ActionRow("设置预算") {
         actionBook = null
         budgetBook = book
       }
@@ -279,22 +294,22 @@ fun BookManageScreen(onBack: () -> Unit) {
   }
 
   budgetBook?.let { book ->
-    val current = budgets.firstOrNull { it.bookId == book.id && it.period == monthKey }?.amountCents ?: 0
+    val current = budgets.firstOrNull { it.bookId == book.id && it.amountCents > 0 }
     BudgetEditDialog(
       visible = true,
       bookName = book.name,
-      monthLabel = monthKey,
-      currentCents = current,
-      onSave = { cents ->
+      currentCycle = current?.cycle ?: BudgetCycle.MONTH,
+      currentCents = current?.amountCents ?: 0,
+      onSave = { cycle, cents ->
         scope.launch {
-          runCatching { container.budgetService.setBudget(book.id, monthKey, cents) }
+          runCatching { container.budgetService.setBudget(book.id, cycle, cents) }
             .onFailure { container.ui.showSnack("设置失败：${ErrorUtil.messageOf(it)}") }
           budgetBook = null
         }
       },
       onClear = {
         scope.launch {
-          runCatching { container.budgetService.removeBudget(book.id, monthKey) }
+          runCatching { container.budgetService.removeBudget(book.id) }
           budgetBook = null
         }
       },
@@ -330,15 +345,16 @@ fun BookManageScreen(onBack: () -> Unit) {
 private fun BookCard(
   book: BookEntity,
   budgetCents: Long,
+  cycle: BudgetCycle?,
   spentCents: Long,
-  monthCount: Int,
+  count: Int,
   hidden: Boolean,
   onClick: () -> Unit,
   onSetBudget: () -> Unit,
 ) {
   val colors = MoreMoneyTheme.colors
   val color = parseColorOf(book.color)
-  val hasBudget = budgetCents > 0
+  val hasBudget = budgetCents > 0 && cycle != null
   val percent = if (hasBudget) (spentCents.toFloat() / budgetCents).coerceIn(0f, 1f) else 0f
   val remaining = budgetCents - spentCents
   val overspent = remaining < 0
@@ -383,7 +399,13 @@ private fun BookCard(
           }
         }
         Text(
-          text = "本月 $monthCount 笔" + if (hasBudget) " · 预算 ${MoneyUtil.formatCents(budgetCents)}" else "",
+          text =
+            if (hasBudget) {
+              "${BudgetCycleUtil.shortLabel(cycle)} $count 笔 · " +
+                "${BudgetCycleUtil.label(cycle)} ${MoneyUtil.formatCents(budgetCents)}"
+            } else {
+              "本月 $count 笔"
+            },
           style = MoreMoneyTextStyles.caption,
           color = colors.ink3,
           maxLines = 1,

@@ -4,100 +4,100 @@ import com.github.ppg007.moremoney.data.db.entity.BookEntity
 import com.github.ppg007.moremoney.data.db.entity.BudgetEntity
 import com.github.ppg007.moremoney.data.repository.BookRepository
 import com.github.ppg007.moremoney.data.repository.BudgetRepository
+import com.github.ppg007.moremoney.models.BudgetCycle
 import com.github.ppg007.moremoney.models.StatsFilter
 import com.github.ppg007.moremoney.util.DateUtil
+import java.time.LocalDate
 
 data class BudgetBookView(
   val bookId: String,
   val name: String,
   val icon: String,
   val color: String,
+  val cycle: BudgetCycle = BudgetCycle.MONTH,
   val budgetCents: Long = 0,
   val spentCents: Long = 0,
   val remainingCents: Long = 0,
   val percent: Float = 0f,
+  val perDayCents: Long = 0,
 )
 
 data class BudgetOverview(
-  val totalCents: Long = 0,
-  val spentCents: Long = 0,
-  val remainingCents: Long = 0,
-  val perDayCents: Long = 0,
-  val mainBook: BudgetBookView? = null,
-  val others: List<BudgetBookView> = emptyList(),
+  /** 已设置预算的账本；默认账本（如有预算）排在最前，供预算卡默认展示。 */
+  val budgeted: List<BudgetBookView> = emptyList(),
   val unset: List<BudgetBookView> = emptyList(),
 )
 
 /**
  * 预算口径：
- * - 合计只包含“已设置预算（>0）且未归档”的账本；
- * - 未设置预算的账本不计入合计，单独展示；
- * - 每天可用 = max(0, 剩余) / 本月剩余天数（含今天）。
+ * - 一个账本只有一条预算配置（周期 + 金额），设置后自动按周期重复；
+ * - 每个账本按自己的周期展示当前周期已用与剩余（年度看本年、季度看本季、月度看本月）；
+ * - 不做跨账本合并计算；默认账本有预算时排在预算卡首位；
+ * - 未设置预算的账本单独展示；
+ * - 每天可用 = max(0, 剩余) / 当前周期剩余天数（含今天）。
  */
 class BudgetService(
   private val bookRepository: BookRepository,
   private val budgetRepository: BudgetRepository,
   private val statsService: StatsService,
 ) {
-  suspend fun getOverview(monthKey: String): BudgetOverview {
+  suspend fun getOverview(today: LocalDate = DateUtil.today()): BudgetOverview {
     val books = bookRepository.list().filter { !it.archived }
-    val budgets = budgetRepository.listByPeriod(monthKey)
-    val range = DateUtil.rangeOfMonth(monthKey)
-    val budgetMap = budgets.associateBy { it.bookId }
+    val budgets = budgetRepository.listAll().associateBy { it.bookId }
 
     val budgeted = ArrayList<BudgetBookView>()
     val unset = ArrayList<BudgetBookView>()
     for (book in books) {
-      val budget: BudgetEntity? = budgetMap[book.id]
+      val budget: BudgetEntity? = budgets[book.id]
       if (budget != null && budget.amountCents > 0) {
-        val filter = StatsFilter(bookIds = listOf(book.id), startMs = range.startMs, endMs = range.endMs)
-        val spent = statsService.sum(filter)
-        val remaining = budget.amountCents - spent
-        budgeted.add(
-          BudgetBookView(
-            bookId = book.id,
-            name = book.name,
-            icon = book.icon,
-            color = book.color,
-            budgetCents = budget.amountCents,
-            spentCents = spent,
-            remainingCents = remaining,
-            percent = if (budget.amountCents > 0) spent.toFloat() / budget.amountCents else 0f,
-          )
-        )
+        budgeted.add(buildBookView(book, budget, today))
       } else {
         unset.add(BudgetBookView(bookId = book.id, name = book.name, icon = book.icon, color = book.color))
       }
     }
 
-    var main: BudgetBookView? = budgeted.firstOrNull { view ->
-      books.firstOrNull { it.isDefault }?.id == view.bookId
-    }
-    if (main == null && budgeted.isNotEmpty()) {
-      main = budgeted[0]
-    }
-    val others = budgeted.filter { it.bookId != main?.bookId }
-    val total = budgeted.sumOf { it.budgetCents }
-    val spent = budgeted.sumOf { it.spentCents }
-    val remaining = total - spent
-    val daysLeft = PeriodResolver.daysLeftInMonth(monthKey)
-    val available = remaining.coerceAtLeast(0)
-    return BudgetOverview(
-      totalCents = total,
+    val defaultBookId = books.firstOrNull { it.isDefault }?.id
+    val defaultView = budgeted.firstOrNull { it.bookId == defaultBookId }
+    val ordered =
+      if (defaultView == null) {
+        budgeted
+      } else {
+        listOf(defaultView) + budgeted.filter { it.bookId != defaultView.bookId }
+      }
+    return BudgetOverview(budgeted = ordered, unset = unset)
+  }
+
+  private suspend fun buildBookView(
+    book: BookEntity,
+    budget: BudgetEntity,
+    today: LocalDate,
+  ): BudgetBookView {
+    val range = BudgetCycleUtil.range(budget.cycle, today)
+    val spent = statsService.sum(bookFilter(book.id, range.startMs, range.endMs))
+    val remaining = budget.amountCents - spent
+    val perDay = remaining.coerceAtLeast(0) / BudgetCycleUtil.daysLeft(budget.cycle, today)
+    return BudgetBookView(
+      bookId = book.id,
+      name = book.name,
+      icon = book.icon,
+      color = book.color,
+      cycle = budget.cycle,
+      budgetCents = budget.amountCents,
       spentCents = spent,
       remainingCents = remaining,
-      perDayCents = available / daysLeft,
-      mainBook = main,
-      others = others,
-      unset = unset,
+      percent = if (budget.amountCents > 0) spent.toFloat() / budget.amountCents else 0f,
+      perDayCents = perDay,
     )
   }
 
-  suspend fun setBudget(bookId: String, period: String, cents: Long) {
-    budgetRepository.upsert(bookId, period, cents)
+  private fun bookFilter(bookId: String, startMs: Long, endMs: Long) =
+    StatsFilter(bookIds = listOf(bookId), startMs = startMs, endMs = endMs)
+
+  suspend fun setBudget(bookId: String, cycle: BudgetCycle, cents: Long) {
+    budgetRepository.upsert(bookId, cycle, cents)
   }
 
-  suspend fun removeBudget(bookId: String, period: String) {
-    budgetRepository.remove(bookId, period)
+  suspend fun removeBudget(bookId: String) {
+    budgetRepository.remove(bookId)
   }
 }

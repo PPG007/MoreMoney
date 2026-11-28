@@ -85,7 +85,7 @@ fun SearchScreen(
   var detailTxn by remember { mutableStateOf<TxnEntity?>(null) }
   var actionTxn by remember { mutableStateOf<TxnEntity?>(null) }
 
-  SystemBarAppearance(darkIcons = true)
+  SystemBarAppearance()
 
   val activeBookIds = books.filter { !it.archived }.map { it.id }.toSet()
   val categoryById = categories.associateBy { it.id }

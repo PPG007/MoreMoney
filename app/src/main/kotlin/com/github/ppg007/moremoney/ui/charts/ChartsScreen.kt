@@ -96,7 +96,7 @@ fun ChartsScreen(
   var rangeStartDay by remember { mutableStateOf<String?>(null) }
   val isDark = isDarkTheme()
 
-  SystemBarAppearance(darkIcons = true)
+  SystemBarAppearance()
 
   LaunchedEffect(state.calendarMonth) {
     selectedDay =
