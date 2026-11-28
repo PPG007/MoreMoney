@@ -249,7 +249,7 @@ adb shell am start -n com.github.ppg007.moremoney/.MainActivity
 | T01.2 | 补专用字号：`amountInput=26sp`、`ringCenter=24sp`、`stat=16sp` 等；新增 `MoreMoneyTextStyles`；金额统一 `tabularNumbers()` | 首页 42sp、记一笔 26sp、环形图 24sp 可引用 |
 | T01.3 | 新增 `Palette.kt`：`ChartColors`（5 槽 + other）、`SeedColors`、`withAlpha()`；取值来自设计规范与历史配色 | 单测/预览验证 alpha 转换 |
 | T01.4 | `tools/svg2vector.mjs`：把 43 个 v1 需要的 `ic_*.svg` 转成 `res/drawable/*.xml`；处理多 path、`fill-rule=evenodd`。分类补充图标用 `tools/material-icons2vector.mjs`（Google Material Icons Outlined，Apache 2.0） | 所有 drawable 生成，构建通过；内置分类图标互不相同 |
-| T01.5 | 自适应图标 + 启动窗口：复用历史 `background.png` / `foreground.png`；`values-v31` 配置 splash | 模拟器冷启动背景色正确 |
+| T01.5 | 自适应图标 + 启动窗口：保留原钱包 `foreground.png`，背景改为白色；`values-v31` 配置 splash | 应用信息页与启动器图标显示正确 |
 | T01.6 | 审计 + 截图：`grep` 确认组件无十六进制颜色；浅/深各截首页与 Tab 栏 | Lint 无硬编码颜色 error |
 
 **图标清单（43 个；私密账本相关的 `ic_lock`、`ic_unlock`、`ic_fingerprint`、`ic_face` 不转换）：**
